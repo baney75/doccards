@@ -1,0 +1,18 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - img "Doc's Cards" [ref=e5]
+        - generic [ref=e6]: Doc's Cards
+      - generic [ref=e7]: Solitaire for Grandpa
+  - list [ref=e8]:
+    - listitem [ref=e9]:
+      - button "Deal New Cards" [ref=e10] [cursor=pointer]
+    - listitem [ref=e11]:
+      - button "Restart Game" [ref=e12] [cursor=pointer]
+    - listitem [ref=e13]:
+      - button "Choose Game..." [ref=e14] [cursor=pointer]
+    - listitem [ref=e15]:
+      - button "Undo" [ref=e16] [cursor=pointer]
+  - contentinfo:
+    - generic: For Grandpa, with love.

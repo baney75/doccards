@@ -1,0 +1,15 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "doccards",
+  "compatibility_date": "2026-05-30",
+  "account_id": "f28b2a55054cbc8d998c5963ed34a0a7",
+  "assets": {
+    "directory": "./public"
+  },
+  "routes": [
+    {
+      "pattern": "doccards.barnlabs.net",
+      "custom_domain": true
+    }
+  ]
+}

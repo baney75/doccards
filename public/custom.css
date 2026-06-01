@@ -1,0 +1,1147 @@
+/* ============================================================
+   Doc's Cards — Custom Branding, Mobile & PWA Polish
+   Color Palette:
+     Doc Red:      #9C1E1E
+     Corpsman Gold: #C9A961
+     Navy Corps:   #0D2240
+     Parchment:    #F8F1E3
+     Charcoal:     #2D2D2D
+     Warm Gold:    #E8D5A3
+   ============================================================ */
+
+/* ---- Reset & Document ---- */
+html, body {
+  margin: 0;
+  padding: 0;
+  overflow-x: clip;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  overscroll-behavior: none;
+}
+
+body {
+  font-family: 'Inter', 'Helvetica Neue', Helvetica, Verdana, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ---- iOS Safari 100vh fix ---- */
+.solitairey_body {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+  min-height: 100dvh;
+  height: auto !important;
+  padding-top: env(safe-area-inset-top) !important;
+  padding-bottom: calc(44px + env(safe-area-inset-bottom)) !important;
+  overflow-x: clip;
+  overscroll-behavior: none;
+}
+
+/* ---- Brand Header ---- */
+#doccards-header {
+  position: sticky;
+  top: 0;
+  z-index: 9000;
+  background: linear-gradient(180deg, #0D2240 0%, #0a1a30 100%);
+  border-bottom: 2px solid #C9A961;
+  padding: 0 env(safe-area-inset-right, 0) 0 env(safe-area-inset-left, 0);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 6px 12px;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.brand-logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px solid #C9A961;
+  object-fit: cover;
+}
+
+.brand-text {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #C9A961;
+  letter-spacing: 0.03em;
+}
+
+.brand-tagline {
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-size: 0.75rem;
+  color: #E8D5A3;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+@media (max-width: 480px) {
+  .brand-text {
+    font-size: 1.1rem;
+  }
+  .brand-tagline {
+    display: none;
+  }
+  .brand-logo {
+    width: 30px;
+    height: 30px;
+  }
+}
+
+/* ---- Game Chooser ---- */
+#game-chooser {
+  max-height: 100vh;
+  max-height: -webkit-fill-available;
+  max-height: 100dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  padding-top: env(safe-area-inset-top, 0);
+  z-index: 1001;
+}
+
+#game-chooser-contents {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 10px 12px;
+}
+
+.chooser-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  color: #0D2240;
+  text-align: center;
+  margin: 16px 0 8px;
+  font-size: 1.5rem;
+}
+
+#descriptions {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+  padding: 0;
+  list-style: none;
+}
+
+#descriptions li {
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 12px;
+  padding: 14px;
+  margin: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  overflow: hidden;
+}
+
+#descriptions li:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+#descriptions li h2 {
+  color: #0D2240;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.2rem;
+  margin: 0 0 6px 0;
+}
+
+#descriptions li .description h3 {
+  color: #9C1E1E;
+  margin: 8px 0 4px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+#descriptions li .description p {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #2D2D2D;
+}
+
+#descriptions li .description blockquote {
+  font-size: 0.87rem;
+  line-height: 1.45;
+  color: #555;
+  font-style: italic;
+  border-left: 3px solid #C9A961;
+  padding-left: 10px;
+  margin: 6px 0;
+}
+
+#descriptions li button.choose {
+  display: inline-block;
+  background: linear-gradient(to bottom, #b32424, #9C1E1E);
+  color: #F8F1E3;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 22px;
+  font-size: 0.95rem;
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 6px;
+  min-height: 44px;
+  min-width: 44px;
+  transition: background 0.2s ease, transform 0.1s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#descriptions li button.choose:hover {
+  background: linear-gradient(to bottom, #c92e2e, #a82222);
+  transform: scale(1.02);
+}
+
+#descriptions li button.choose:active {
+  transform: scale(0.98);
+}
+
+/* ---- Close Chooser Button ---- */
+#close-chooser {
+  display: block;
+  margin: 10px auto 14px;
+  background: linear-gradient(to bottom, #0D2240, #091528);
+  color: #C9A961;
+  border: 1px solid #C9A961;
+  border-radius: 8px;
+  padding: 10px 28px;
+  font-size: 1rem;
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s;
+}
+
+#close-chooser:hover {
+  background: linear-gradient(to bottom, #142d4a, #0D2240);
+}
+
+/* ---- Menu Bar ---- */
+#menu {
+  font-family: 'Inter', Helvetica, sans-serif;
+  position: relative;
+  left: 50% !important;
+  transform: translateX(-50%);
+  width: auto !important;
+  max-width: 95%;
+  white-space: nowrap;
+}
+
+#menu a {
+  -webkit-tap-highlight-color: transparent;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+}
+
+/* ---- Win Display responsive ---- */
+#win_display {
+  width: min(35em, 90vw) !important;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+/* ---- Solver bar responsive ---- */
+#solver_bar {
+  width: min(500px, 90vw) !important;
+  left: 50% !important;
+  transform: translateX(-50%);
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+/* ---- Footer ---- */
+#site-footer {
+  position: fixed !important;
+  bottom: 0 !important;
+  top: auto !important;
+  left: 0 !important;
+  right: 0 !important;
+  height: auto !important;
+  max-height: 50px !important;
+  background: linear-gradient(180deg, rgba(13, 34, 64, 0.95) 0%, rgba(13, 34, 64, 0.98) 100%) !important;
+  color: #E8D5A3 !important;
+  text-align: center !important;
+  padding: 4px 0 env(safe-area-inset-bottom, 4px) !important;
+  font-family: 'Inter', Helvetica, sans-serif !important;
+  z-index: 10 !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  pointer-events: none !important;
+  overflow: hidden !important;
+  border-top: 1px solid rgba(201, 169, 97, 0.3);
+}
+
+#site-footer a {
+  pointer-events: auto !important;
+  color: #C9A961 !important;
+  text-decoration: none;
+}
+
+#site-footer a:hover {
+  color: #F8F1E3 !important;
+  text-decoration: underline;
+}
+
+#site-footer .dedication {
+  margin: 0;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-style: italic;
+  font-size: 0.85em;
+  color: #C9A961;
+  letter-spacing: 0.3px;
+}
+
+#site-footer .footer-links {
+  margin: 2px 0 0;
+  font-size: 0.72em;
+}
+
+/* Override the original footer position */
+footer {
+  position: fixed !important;
+  bottom: 0 !important;
+  right: auto !important;
+  left: 0 !important;
+  top: auto !important;
+}
+
+/* Override cards.css hidden description content */
+.description blockquote,
+.description h3,
+.description p,
+.description button {
+  display: block !important;
+}
+
+/* Override cards.css fixed card dimensions */
+#descriptions li {
+  width: auto !important;
+  height: auto !important;
+}
+
+/* Override cards.css clipped description div */
+#descriptions div {
+  position: relative !important;
+  height: auto !important;
+  overflow: visible !important;
+}
+
+/* Override close-chooser fixed width */
+#close-chooser {
+  width: auto !important;
+  max-width: 90% !important;
+}
+
+/* Override win_display fixed height on small screens */
+#win_display {
+  max-height: 80vh !important;
+  overflow-y: auto !important;
+}
+
+/* Keyboard focus styles */
+a:focus-visible,
+button:focus-visible,
+.choose:focus-visible {
+  outline: 2px solid #C9A961;
+  outline-offset: 2px;
+}
+
+#menu a:focus-visible {
+  outline: 2px solid #C9A961;
+  outline-offset: 2px;
+}
+
+/* Hide Chrome Store banner */
+.chromestore {
+  display: none !important;
+}
+
+/* ---- Card touch handling ---- */
+.card {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  touch-action: manipulation;
+}
+
+/* Minimum tap target size (WCAG 2.1) */
+#menu a,
+#close-chooser,
+#descriptions li button.choose {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ---- Responsive: Mobile (< 600px) ---- */
+@media (max-width: 600px) {
+  #descriptions {
+    grid-template-columns: 1fr;
+    gap: 10px;
+    padding: 0 6px;
+  }
+
+  #descriptions li {
+    padding: 12px;
+  }
+
+  #menu {
+    left: 50% !important;
+    transform: translateX(-50%);
+    width: auto !important;
+    max-width: 95%;
+    font-size: 13px;
+  }
+
+  #menu a {
+    padding: 0 6px;
+    font-size: 12px;
+  }
+
+  #close-chooser {
+    margin: 8px auto 10px;
+    padding: 8px 20px;
+    font-size: 0.9em;
+  }
+
+  #site-footer .dedication {
+    font-size: 0.78em;
+  }
+
+  #game-chooser-contents {
+    padding: 6px;
+  }
+
+  .chooser-title {
+    font-size: 1.2rem;
+    margin-top: 8px;
+    margin-bottom: 4px;
+  }
+}
+
+/* ---- Responsive: Tablet (601px - 1024px) ---- */
+@media (min-width: 601px) and (max-width: 1024px) {
+  #descriptions {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ---- Responsive: Desktop (> 1024px) ---- */
+@media (min-width: 1025px) {
+  #descriptions {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ---- Landscape iPhone ---- */
+@media (max-height: 500px) and (orientation: landscape) {
+  #doccards-header {
+    padding: 2px 8px;
+  }
+  .brand-logo {
+    width: 26px;
+    height: 26px;
+  }
+  .brand-text {
+    font-size: 1rem;
+  }
+  .brand-tagline {
+    font-size: 0.65rem;
+  }
+  #site-footer {
+    max-height: 36px !important;
+    font-size: 0.7em;
+  }
+  #menu a {
+    font-size: 11px;
+    padding: 0 4px;
+  }
+}
+
+/* ---- Print: hide UI, show cards ---- */
+@media print {
+  #doccards-header,
+  #menu,
+  #site-footer,
+  #close-chooser,
+  .chromestore {
+    display: none !important;
+  }
+  .solitairey_body {
+    height: auto !important;
+    padding: 0 !important;
+  }
+}
+
+/* ---- Reduced Motion ---- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .playable {
+    transition: none !important;
+  }
+
+  .playable:hover {
+    box-shadow: 0 0 6px 4px rgba(255, 252, 143, 0.9);
+    transition: none !important;
+  }
+
+  #descriptions li {
+    transition: none !important;
+  }
+
+  #descriptions li:hover {
+    transform: none !important;
+  }
+}
+
+/* ---- Loading spinner ---- */
+.loading {
+  animation: doccards-spin 1s linear infinite;
+}
+
+@keyframes doccards-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Win animation polish */
+@keyframes doccards-shine {
+  0% { filter: brightness(1); }
+  50% { filter: brightness(1.4) saturate(1.3); }
+  100% { filter: brightness(1); }
+}
+
+/* PWA install prompt (iOS fallback) */
+.pwa-ios-prompt {
+  position: fixed;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(13, 34, 64, 0.95);
+  color: #F8F1E3;
+  border: 1px solid #C9A961;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-size: 0.85rem;
+  z-index: 10000;
+  max-width: 90vw;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.pwa-ios-prompt .pwa-icon {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+.pwa-ios-prompt button {
+  display: inline-block;
+  background: linear-gradient(to bottom, #b32424, #9C1E1E);
+  color: #F8F1E3;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 16px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  margin-top: 6px;
+  margin-left: 8px;
+}
+
+.pwa-ios-prompt button.dismiss {
+  background: transparent;
+  border: 1px solid #C9A961;
+  color: #C9A961;
+}
+
+/* ============================================================
+   Rules Overlay
+   ============================================================ */
+#rules-btn {
+  position: fixed;
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  right: 12px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #C9A961;
+  background: linear-gradient(135deg, #0D2240, #142d4a);
+  color: #C9A961;
+  font-size: 1.2rem;
+  font-weight: 700;
+  font-family: 'Playfair Display', Georgia, serif;
+  cursor: pointer;
+  z-index: 9001;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+#rules-btn:hover,
+#rules-btn:focus-visible {
+  transform: scale(1.08);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
+  outline: 2px solid #C9A961;
+  outline-offset: 2px;
+}
+
+.rules-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(13, 34, 64, 0.85);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 16px;
+}
+
+.rules-overlay.hidden {
+  display: none;
+}
+
+.rules-content {
+  background: #F8F1E3;
+  color: #2D2D2D;
+  border-radius: 16px;
+  padding: 24px;
+  max-width: 500px;
+  width: 100%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  font-family: 'Inter', Helvetica, sans-serif;
+}
+
+.rules-content h2 {
+  font-family: 'Playfair Display', Georgia, serif;
+  color: #9C1E1E;
+  font-size: 1.5rem;
+  margin: 0 0 12px 0;
+}
+
+.rules-content p {
+  line-height: 1.6;
+  margin: 0 0 16px 0;
+}
+
+#rules-close {
+  display: block;
+  width: 100%;
+  background: linear-gradient(to bottom, #9C1E1E, #7a1616);
+  color: #F8F1E3;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 1rem;
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#rules-close:hover {
+  background: linear-gradient(to bottom, #b32424, #9C1E1E);
+}
+
+/* ============================================================
+   Accessibility Toggle (Aa)
+   ============================================================ */
+#a11y-toggle {
+  position: fixed;
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  right: 60px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #C9A961;
+  background: linear-gradient(135deg, #0D2240, #142d4a);
+  color: #C9A961;
+  font-size: 1rem;
+  font-weight: 700;
+  font-family: 'Playfair Display', Georgia, serif;
+  cursor: pointer;
+  z-index: 9001;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+#a11y-toggle.active {
+  background: linear-gradient(135deg, #C9A961, #E8D5A3);
+  color: #0D2240;
+  border-color: #E8D5A3;
+}
+
+#a11y-toggle:focus-visible {
+  outline: 2px solid #C9A961;
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Sound Toggle
+   ============================================================ */
+#sound-toggle {
+  position: fixed;
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  left: 52px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid rgba(201, 169, 97, 0.5);
+  background: rgba(13, 34, 64, 0.7);
+  color: #C9A961;
+  font-size: 1.1rem;
+  cursor: pointer;
+  z-index: 9001;
+  -webkit-tap-highlight-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  padding: 0;
+  line-height: 1;
+}
+
+#sound-toggle:hover {
+  background: rgba(13, 34, 64, 0.9);
+}
+
+/* ============================================================
+   Deal Number Display
+   ============================================================ */
+.deal-display {
+  position: fixed;
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px));
+  left: 12px;
+  background: rgba(13, 34, 64, 0.92);
+  color: #E8D5A3;
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-size: 0.78rem;
+  z-index: 9001;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(201, 169, 97, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.deal-display.hidden {
+  display: none;
+}
+
+.deal-label {
+  color: #C9A961;
+  font-weight: 600;
+}
+
+#copy-deal {
+  background: none;
+  border: none;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  -webkit-tap-highlight-color: transparent;
+  min-height: 28px;
+  min-width: 28px;
+}
+
+#copy-deal:hover {
+  opacity: 0.7;
+}
+
+/* ============================================================
+   Move Counter / Timer HUD
+   ============================================================ */
+.dc-hud {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 44px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(13, 34, 64, 0.88);
+  color: #E8D5A3;
+  border-radius: 20px;
+  padding: 3px 14px;
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-size: 0.75rem;
+  z-index: 500;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(201, 169, 97, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.dc-hud.hidden {
+  display: none;
+}
+
+.hud-label {
+  color: #C9A961;
+  font-weight: 600;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.hud-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.hud-sep {
+  color: rgba(201, 169, 97, 0.4);
+  margin: 0 2px;
+}
+
+/* ============================================================
+   Favorites / My Games
+   ============================================================ */
+#descriptions > li {
+  position: relative;
+}
+
+.fav-star {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  color: #C9A961;
+  cursor: pointer;
+  padding: 0;
+  min-height: 32px;
+  min-width: 32px;
+  -webkit-tap-highlight-color: transparent;
+  z-index: 10;
+  line-height: 1;
+}
+
+.fav-star.active {
+  color: #9C1E1E;
+}
+
+#fav-filter {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+  justify-content: center;
+}
+
+.filter-btn {
+  background: rgba(13, 34, 64, 0.1);
+  border: 1px solid rgba(13, 34, 64, 0.2);
+  border-radius: 20px;
+  padding: 6px 18px;
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #0D2240;
+  cursor: pointer;
+  min-height: 36px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.filter-btn.active {
+  background: #0D2240;
+  color: #F8F1E3;
+  border-color: #0D2240;
+}
+
+.filter-btn:hover {
+  opacity: 0.85;
+}
+
+/* ============================================================
+   Win Display (Branded)
+   ============================================================ */
+#win_display {
+  background: linear-gradient(135deg, #F8F1E3 0%, #fff 100%) !important;
+  border: 2px solid #C9A961 !important;
+  text-align: center;
+}
+
+#win_display .win-icon {
+  font-size: 3rem;
+  margin: 0 0 8px;
+}
+
+#win_display .win-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 2rem;
+  color: #9C1E1E;
+  margin: 0 0 4px;
+  font-weight: 700;
+  text-shadow: none;
+}
+
+#win_display .win-subtitle {
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-size: 1rem;
+  color: #0D2240;
+  margin: 0 0 16px;
+}
+
+#win_display h2 {
+  display: none;
+}
+
+#win_display .win-stats {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin: 12px 0 20px;
+}
+
+#win_display .stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+#win_display .stat-value {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.8rem;
+  color: #0D2240;
+  font-weight: 700;
+  line-height: 1;
+}
+
+#win_display .stat-label {
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-size: 0.7rem;
+  color: #C9A961;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-top: 2px;
+}
+
+.doccards-btn {
+  background: linear-gradient(to bottom, #9C1E1E, #7a1616);
+  color: #F8F1E3;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 28px;
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  margin: 4px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 0.2s ease;
+}
+
+.doccards-btn:hover {
+  background: linear-gradient(to bottom, #b32424, #9C1E1E);
+}
+
+.doccards-btn-secondary {
+  background: linear-gradient(to bottom, #0D2240, #091528);
+  border: 1px solid #C9A961;
+  color: #C9A961;
+}
+
+.doccards-btn-secondary:hover {
+  background: linear-gradient(to bottom, #142d4a, #0D2240);
+}
+
+/* ============================================================
+   Toast
+   ============================================================ */
+.dc-toast {
+  position: fixed;
+  bottom: calc(100px + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(13, 34, 64, 0.95);
+  color: #F8F1E3;
+  border-radius: 8px;
+  padding: 8px 20px;
+  font-family: 'Inter', Helvetica, sans-serif;
+  font-size: 0.85rem;
+  z-index: 10001;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* ============================================================
+   Big Cards Mode
+   ============================================================ */
+:root {
+  --dc-card-scale: 1;
+  --dc-font-scale: 1;
+}
+
+.big-cards {
+  --dc-card-scale: 1.4;
+  --dc-font-scale: 1.15;
+}
+
+.big-cards .card,
+.big-cards .stack {
+  transform: scale(var(--dc-card-scale));
+  transform-origin: top left;
+}
+
+.big-cards #menu {
+  font-size: calc(16px * var(--dc-font-scale));
+}
+
+.big-cards #menu a {
+  padding: 0 12px;
+  font-size: inherit;
+}
+
+.big-cards #descriptions li h2 {
+  font-size: calc(1.3rem * var(--dc-font-scale));
+}
+
+.big-cards #descriptions li .description p,
+.big-cards #descriptions li .description blockquote {
+  font-size: calc(0.88rem * var(--dc-font-scale));
+  line-height: 1.5;
+}
+
+.big-cards #descriptions li button.choose {
+  font-size: calc(1rem * var(--dc-font-scale));
+  padding: 12px 28px;
+}
+
+.big-cards #close-chooser {
+  font-size: calc(1.05rem * var(--dc-font-scale));
+  padding: 12px 32px;
+}
+
+.big-cards #win_display .win-title {
+  font-size: 2.4rem;
+}
+
+.big-cards #win_display .stat-value {
+  font-size: 2.2rem;
+}
+
+.big-cards .deal-display {
+  font-size: 0.9rem;
+}
+
+.big-cards .dc-hud {
+  font-size: 0.88rem;
+}
+
+.big-cards .rules-content h2 {
+  font-size: calc(1.5rem * var(--dc-font-scale));
+}
+
+.big-cards .rules-content p {
+  font-size: calc(1rem * var(--dc-font-scale));
+}
+
+.big-cards #rules-btn {
+  width: 52px;
+  height: 52px;
+  font-size: 1.4rem;
+}
+
+.big-cards #a11y-toggle {
+  width: 52px;
+  height: 52px;
+  font-size: 1.2rem;
+}
+
+.big-cards #sound-toggle {
+  width: 52px;
+  height: 52px;
+  font-size: 1.3rem;
+}
+
+/* ============================================================
+   Responsive Adjustments for New UI
+   ============================================================ */
+@media (max-width: 480px) {
+  #rules-btn {
+    bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+    right: 8px;
+    width: 40px;
+    height: 40px;
+    font-size: 1rem;
+  }
+
+  #a11y-toggle {
+    bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+    right: 52px;
+    width: 40px;
+    height: 40px;
+    font-size: 0.9rem;
+  }
+
+  #sound-toggle {
+    bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+    left: 48px;
+    width: 40px;
+    height: 40px;
+  }
+
+  .deal-display {
+    bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+    left: 8px;
+    font-size: 0.72rem;
+    padding: 3px 8px;
+  }
+
+  .rules-content {
+    padding: 16px;
+    border-radius: 12px;
+  }
+
+  #win_display .win-stats {
+    gap: 16px;
+  }
+
+  #win_display .stat-value {
+    font-size: 1.4rem;
+  }
+}
+
+@media (max-height: 500px) and (orientation: landscape) {
+  #rules-btn {
+    bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+
+  #a11y-toggle {
+    bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+
+  #sound-toggle {
+    bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .deal-display {
+    bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+  }
+}
