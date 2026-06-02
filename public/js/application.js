@@ -80,9 +80,50 @@ define(["./solitaire"], function (solitaire) {
                 },
             };
         })();
+        const GAME_SLUGS = {
+            agnes: "agnes",
+            klondike: "klondike",
+            klondike1t: "klondike-1t",
+            "flower-garden": "flower-garden",
+            "forty-thieves": "forty-thieves",
+            freecell: "freecell",
+            golf: "golf",
+            "grandfathers-clock": "gclock",
+            "monte-carlo": "monte-carlo",
+            pyramid: "pyramid",
+            "russian-solitaire": "russian",
+            scorpion: "scorpion",
+            spider: "spider",
+            spider1s: "spider-1s",
+            spider2s: "spider-2s",
+            spiderette: "spiderette",
+            "tri-towers": "tri-towers",
+            "will-o-the-wisp": "will-o-the-wisp",
+            yukon: "yukon",
+        };
+        const GAMES_WITH_DECK = {
+            Klondike: 1, Klondike1T: 1, Agnes: 1,
+            Spider: 1, Spider1S: 1, Spider2S: 1, Spiderette: 1,
+            Yukon: 1, Canfield: 1, WillOTheWisp: 1,
+            MonteCarlo: 1, Pyramid: 1, TriTowers: 1, Golf: 1,
+            RussianSolitaire: 1, GClock: 1, FortyThieves: 1, Scorpion: 1,
+        };
+        let _currentGameClass = "";
+        function setGameBodyClass(gameKey) {
+            if (_currentGameClass) {
+                document.body.classList.remove(_currentGameClass);
+            }
+            const slug = GAME_SLUGS[gameKey] || gameKey;
+            const cls = "game-" + slug;
+            document.body.classList.add(cls);
+            document.body.classList.toggle("game-has-deck", !!GAMES_WITH_DECK[gameKey]);
+            document.body.classList.toggle("game-no-deck", !GAMES_WITH_DECK[gameKey]);
+            _currentGameClass = cls;
+        }
         function switchToGame(name) {
             active.name = name;
             active.game = Y.Solitaire[games[name]];
+            setGameBodyClass(games[name]);
         }
         function playGame(name) {
             switchToGame(name);
@@ -449,6 +490,12 @@ define(["./solitaire"], function (solitaire) {
         function main(YUI) {
             Y = YUI;
             window.Y = Y;
+            if (Y.Solitaire) {
+                Y.Solitaire.offset = Y.Solitaire.offset || { left: 50, top: 70 };
+                Y.Solitaire.offset.top = 110;
+                Y.Solitaire.padding = Y.Solitaire.padding || { x: 50, y: 50 };
+                Y.Solitaire.padding.y = 110;
+            }
             exportAPI();
             Y.on("domready", _my_load_func);
         }

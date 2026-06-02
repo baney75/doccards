@@ -272,7 +272,8 @@
       hud.id = "dc-hud";
       hud.className = "dc-hud hidden";
       hud.innerHTML = '<span class="hud-item"><span class="hud-label">Moves</span> <span id="dc-moves">0</span></span> <span class="hud-sep">\u00B7</span> <span class="hud-item"><span class="hud-label">Time</span> <span id="dc-time">0:00</span></span>';
-      document.body.appendChild(hud);
+      var slot = document.getElementById("header-hud");
+      if (slot) { slot.appendChild(hud); } else { document.body.appendChild(hud); }
       this._hudEl = hud;
       var self = this;
       this._tickInterval = setInterval(function () {

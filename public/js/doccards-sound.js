@@ -4,17 +4,30 @@
   var Sound = {
     _ctx: null,
     _enabled: true,
-    _volume: 0.4,
+    _volume: 0.32,
+    _noiseBuffer: null,
 
     init: function () {
       try {
         this._ctx = new (root.AudioContext || root.webkitAudioContext)();
+        this._noiseBuffer = this._makeNoiseBuffer(0.12);
         Logger.info("sound_initialized", { sampleRate: this._ctx.sampleRate });
       } catch (e) {
         Logger.warn("sound_unavailable", { error: e.message });
         this._ctx = null;
       }
       this._loadPreference();
+    },
+
+    _makeNoiseBuffer: function (seconds) {
+      if (!this._ctx) return null;
+      var length = Math.floor(this._ctx.sampleRate * seconds);
+      var buf = this._ctx.createBuffer(1, length, this._ctx.sampleRate);
+      var data = buf.getChannelData(0);
+      for (var i = 0; i < length; i++) {
+        data[i] = (Math.random() * 2 - 1) * (1 - i / length);
+      }
+      return buf;
     },
 
     _loadPreference: function () {
@@ -45,44 +58,78 @@
       return this._volume;
     },
 
-    _play: function (type, frequency, duration, decay) {
-      if (!this._ctx || !this._enabled) return;
+    _ensure: function () {
+      if (!this._ctx || !this._enabled) return false;
       if (this._ctx.state === "suspended") {
         this._ctx.resume();
       }
+      return true;
+    },
+
+    _tone: function (type, freqStart, freqEnd, duration, peak) {
+      if (!this._ensure()) return;
+      var t0 = this._ctx.currentTime;
       var osc = this._ctx.createOscillator();
       var gain = this._ctx.createGain();
+      osc.type = type;
+      osc.frequency.setValueAtTime(freqStart, t0);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(40, freqEnd), t0 + duration);
+      gain.gain.setValueAtTime(0.0001, t0);
+      gain.gain.exponentialRampToValueAtTime(peak * this._volume, t0 + 0.005);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
       osc.connect(gain);
       gain.connect(this._ctx.destination);
-      osc.type = type;
-      osc.frequency.setValueAtTime(frequency, this._ctx.currentTime);
-      gain.gain.setValueAtTime(this._volume, this._ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, this._ctx.currentTime + duration * decay);
-      osc.start(this._ctx.currentTime);
-      osc.stop(this._ctx.currentTime + duration);
+      osc.start(t0);
+      osc.stop(t0 + duration + 0.02);
+    },
+
+    _noise: function (duration, peak, lowpass) {
+      if (!this._ensure() || !this._noiseBuffer) return;
+      var t0 = this._ctx.currentTime;
+      var src = this._ctx.createBufferSource();
+      src.buffer = this._noiseBuffer;
+      var filter = this._ctx.createBiquadFilter();
+      filter.type = "lowpass";
+      filter.frequency.setValueAtTime(lowpass, t0);
+      var gain = this._ctx.createGain();
+      gain.gain.setValueAtTime(peak * this._volume, t0);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+      src.connect(filter);
+      filter.connect(gain);
+      gain.connect(this._ctx.destination);
+      src.start(t0);
     },
 
     cardPlace: function () {
-      this._play("sine", 800, 0.08, 2);
+      this._tone("triangle", 720, 540, 0.09, 0.55);
+      this._noise(0.05, 0.18, 2400);
     },
 
     cardFlip: function () {
-      this._play("triangle", 1200, 0.06, 3);
+      this._tone("triangle", 1400, 900, 0.06, 0.45);
+      this._noise(0.04, 0.12, 3200);
     },
 
     cardPickup: function () {
-      this._play("sine", 600, 0.05, 2.5);
+      this._tone("sine", 520, 380, 0.05, 0.4);
+      this._noise(0.04, 0.10, 1800);
     },
 
     win: function () {
       var self = this;
-      this._play("sine", 523, 0.15, 1.5);
-      setTimeout(function () { self._play("sine", 659, 0.15, 1.5); }, 150);
-      setTimeout(function () { self._play("sine", 784, 0.3, 2); }, 300);
+      var notes = [523.25, 659.25, 783.99, 1046.5];
+      notes.forEach(function (n, i) {
+        setTimeout(function () {
+          self._tone("triangle", n, n, 0.22, 0.6);
+        }, i * 140);
+      });
+      setTimeout(function () {
+        self._tone("sine", 1318.5, 1318.5, 0.45, 0.5);
+      }, 600);
     },
 
     error: function () {
-      this._play("square", 200, 0.15, 1.5);
+      this._tone("square", 220, 160, 0.12, 0.5);
     }
   };
 
