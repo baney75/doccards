@@ -479,7 +479,7 @@ define(["./solitaire"], function (solitaire) {
 
         function restart() {
             var init = null;
-            try { init = localStorage.getItem("FossSolitairey_initial-game"); } catch (e) {}
+            try { init = $.jStorage.get("initial-game"); } catch (e) {}
 
             if (init) {
                 clearDOM();

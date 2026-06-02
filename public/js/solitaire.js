@@ -244,8 +244,7 @@ define([], function () {
                 },
 
                 save: function (name) {
-                    const data = this.serialize(),
-                        twoWeeks = 1206900000;
+                    const data = this.serialize();
 
                     if (enable_cookies()) {
                         $.jStorage.set(
@@ -535,7 +534,7 @@ define([], function () {
                     });
 
                     // TODO: refactor this conditional into the above iteration
-                    if (Game.fields.indexOf("Deck" === -1)) {
+                    if (Game.fields.indexOf("Deck") === -1) {
                         Game.deck = Game.createField(Game.Deck);
                     }
                     const vals = my_Flatten(
@@ -790,7 +789,7 @@ define([], function () {
                         seed = (((214013 * seed) % maxInt) + 2531011) % maxInt;
                         rand = (seed >> 16) & 0x7fff;
 
-                        item = cards[i - 1];
+                        const item = cards[i - 1];
                         temp = cards[rand % i];
                         cards[i - 1] = temp;
                         cards[rand % i] = item;

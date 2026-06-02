@@ -627,7 +627,8 @@ YUI.add(
                             stack = 0,
                             i;
                         const stacks = this.tableau.stacks;
-                        (deck = this.deck), (reserve = this.reserve.stacks[0]);
+                        const deck = this.deck;
+                        const reserve = this.reserve.stacks[0];
 
                         for (i = 0; i < 36; i++) {
                             card = deck.pop();
@@ -932,8 +933,8 @@ YUI.add(
                         },
                         field: "deck",
 
-                        init: function () {
-                            Solitaire.Deck.init.call(this);
+                        init: function (seed) {
+                            Solitaire.Deck.init.call(this, seed);
                             this.cards.forEach(function (c) {
                                 c.faceDown();
                             });
@@ -2064,13 +2065,6 @@ YUI.add(
         Y.mix(
             Scorpion.Stack,
             {
-                validTarget: function (stack) {
-                    return (
-                        stack.field === "tableau" &&
-                        this.first().validTarget(stack)
-                    );
-                },
-
                 validProxy: function (card) {
                     return true;
                 },
@@ -2083,7 +2077,7 @@ YUI.add(
                             return this.first().validTarget(stack);
                             break;
                         case "foundation":
-                            const rank = this.last.rank;
+                            const rank = _.last(this.cards).rank;
                             if (cards.length !== 13) {
                                 return false;
                             }

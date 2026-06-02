@@ -391,6 +391,7 @@ function solve(state, depth, visited, movesSinceFoundation, fastSearch) {
         sourceField,
         destField,
         move,
+        s,
         scale = 1,
         foundFoundation = false,
         i;

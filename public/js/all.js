@@ -15844,7 +15844,8 @@ YUI.add(
                             stack = 0,
                             i;
                         const stacks = this.tableau.stacks;
-                        (deck = this.deck), (reserve = this.reserve.stacks[0]);
+                        const deck = this.deck;
+                        const reserve = this.reserve.stacks[0];
 
                         for (i = 0; i < 36; i++) {
                             card = deck.pop();
