@@ -15,12 +15,12 @@
     <meta property="og:type" content="website" />
     <meta property="og:title" content="Doc's Cards — Solitaire for Grandpa" />
     <meta property="og:description" content="Nineteen classic solitaire games. Offline-first, installable, made with love for Grandpa." />
-    <meta property="og:image" content="https://baney75.github.io/og-image.png" />
-    <meta property="og:url" content="https://baney75.github.io/" />
+    <meta property="og:image" content="https://baney75.github.io/doccards/og-image.png" />
+    <meta property="og:url" content="https://baney75.github.io/doccards/" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Doc's Cards — Solitaire for Grandpa" />
     <meta name="twitter:description" content="Nineteen classic solitaire games. Offline-first, installable, made with love for Grandpa." />
-    <meta name="twitter:image" content="https://baney75.github.io/og-image.png" />
+    <meta name="twitter:image" content="https://baney75.github.io/doccards/og-image.png" />
     <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; base-uri 'self'; form-action 'self'; object-src 'none'" />
     <meta name="referrer" content="no-referrer" />
     <title>Doc's Cards — Solitaire for Grandpa</title>
@@ -69,7 +69,7 @@ requirejs.config({
     <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
-            navigator.serviceWorker.register('/sw.js').then(function (reg) {
+            navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
                 Logger.info('sw_registered', { scope: reg.scope });
             }).catch(function (err) {
                 Logger.error('sw_register_failed', { error: err.message });

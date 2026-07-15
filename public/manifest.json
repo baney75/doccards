@@ -1,10 +1,10 @@
 {
-  "id": "/",
+  "id": "/doccards/",
   "name": "Doc's Cards — Solitaire for Grandpa",
   "short_name": "Doc's Cards",
   "description": "A beautiful solitaire collection — Klondike, FreeCell, Spider, and more. Made with love for Grandpa.",
-  "start_url": "/?source=pwa",
-  "scope": "/",
+  "start_url": "./?source=pwa",
+  "scope": "./",
   "display": "standalone",
   "orientation": "any",
   "background_color": "#0D2240",
@@ -44,21 +44,21 @@
       "name": "Spider (1 Suit)",
       "short_name": "Easy Spider",
       "description": "Gentle Spider for learning",
-      "url": "/?game=spider1s",
+      "url": "./?game=spider1s",
       "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Klondike",
       "short_name": "Klondike",
       "description": "Classic solitaire",
-      "url": "/?game=klondike",
+      "url": "./?game=klondike",
       "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }]
     },
     {
       "name": "Freecell",
       "short_name": "Freecell",
       "description": "Skillful Freecell",
-      "url": "/?game=freecell",
+      "url": "./?game=freecell",
       "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }]
     }
   ],

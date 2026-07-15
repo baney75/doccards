@@ -12,7 +12,6 @@ define(["./solitaire"], function (solitaire) {
             base: "js/yui-unpack/yui/build/",
             root: "js/yui-unpack/yui/build/",
             combine: false,
-            comboBase: "/js/yui-unpack/yui/build/combo?",
             filter: "min",
         });
         let Y;

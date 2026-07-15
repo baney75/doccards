@@ -4,7 +4,7 @@
 built as a tribute to Grandpa and to the open-source heritage of
 [Solitairey](https://github.com/foss-card-games/Solitairey).
 
-[Play it live →](https://baney75.github.io/)
+[Play it live →](https://baney75.github.io/doccards/)
 
 ## About
 
@@ -49,30 +49,25 @@ Then open <http://localhost:3000>.
 
 ## Production deploy (GitHub Pages)
 
-**Live site:** <https://baney75.github.io/>
+**Live site:** <https://baney75.github.io/doccards/>
 
-This is a static site — no compile step. The deployable artifact is the
-contents of `public/`.
-
-### Repository name
-
-For the game to load at the root URL (`https://baney75.github.io/`), the
-GitHub repository must be named **`baney75.github.io`** (a GitHub user site).
-If the repo is still named something else (e.g. `doccards`), rename it in
-**Settings → General → Repository name** before publishing.
+This is a **project Pages** site for the `doccards` repository (repo name stays
+`doccards` — no rename required). The app is configured for the `/doccards/`
+base path.
 
 ### Publish
 
-1. Stage the site locally (optional):
-   ```bash
-   pnpm pages:build   # copies public/ → _site/ (prunes bulky YUI paths)
-   ```
-2. In the repo, go to **Settings → Pages** and set **Source** to **GitHub Actions**.
-3. Push to `main` or `master`; the [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
-   workflow builds `_site/` and deploys it automatically.
+1. Make sure the repository is **Public** (Settings → General → Danger Zone).
+2. Settings → Pages → Source = **GitHub Actions**.
+3. Push to `master` (or `main`); [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+   builds `_site/` and deploys automatically.
 
-The repository must be named **`baney75.github.io`** for the live root URL
-(`https://baney75.github.io/`).
+Local preview of the deploy artifact:
+
+```bash
+pnpm pages:build
+npx serve _site -l 3000 -s
+```
 
 ## Project structure
 
@@ -111,10 +106,14 @@ public/
 
 ## Hosting note
 
-GitHub Pages only (`https://baney75.github.io/`). Cloudflare Workers/Pages config was
-removed from this repository. If an old `doccards` Worker still exists on
-Cloudflare, delete it in the Cloudflare dashboard (this environment has no CF
-API credentials to tear it down remotely).
+GitHub Pages project site: <https://baney75.github.io/doccards/> (repo stays
+named `doccards`). Cloudflare Workers/Pages config was removed from this
+repository. If an old `doccards` Worker still exists on Cloudflare, delete it
+in the Cloudflare dashboard.
+
+**Required once in GitHub Settings (this agent token cannot flip them):**
+1. Repository must be **Public** (Settings → General → Change visibility).
+2. Settings → Pages → Source = **GitHub Actions**, or Deploy from branch `gh-pages` / root.
 
 A meta Content-Security-Policy is set in `index.html` (YUI 3 requires
 `'unsafe-eval'`). GitHub Pages cannot set `X-Frame-Options` /
