@@ -286,21 +286,22 @@
         var Y = root.Y;
         if (Y && Y.Solitaire && Y.Solitaire.Application && Y.Solitaire.Application.pickThemeSize) {
           Y.Solitaire.Application.pickThemeSize();
-          Y.fire("beforeResize");
-          if (Y.Solitaire.game) {
-            Y.Solitaire.Application && Y.fire("afterSetup");
-          }
-        } else if (Y) {
-          Y.fire("beforeResize");
         }
-      } catch (e) {}
-      // Soft reload of card images for new theme size
-      try {
-        var Y2 = root.Y;
-        if (Y2 && Y2.Solitaire && Y2.Solitaire.Application && typeof window !== "undefined") {
-          window.dispatchEvent(new Event(Y2.Solitaire.Application.resizeEvent || "resize"));
+        if (Y && Y.Solitaire && Y.Solitaire.game) {
+          Y.Solitaire.game.eachStack(function (stack) {
+            stack.eachCard(function (card) {
+              if (!card) return;
+              if (card.updateRankHeight) card.updateRankHeight();
+              if (card.setImageSrc) card.setImageSrc();
+              if (card.updateStyle) card.updateStyle();
+            });
+          });
+          Y.fire("beforeResize");
+          window.dispatchEvent(new Event((Y.Solitaire.Application && Y.Solitaire.Application.resizeEvent) || "resize"));
         }
-      } catch (e2) {}
+      } catch (e) {
+        Logger.warn("big_cards_refresh_failed", { error: e.message });
+      }
       Logger.info("toggle_big_cards", { enabled: isBig });
     },
 

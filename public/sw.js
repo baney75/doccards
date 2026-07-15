@@ -1,5 +1,5 @@
-var CACHE_NAME = 'doccards-v11';
-var CARD_SIZES = [61, 79, 122];
+var CACHE_NAME = 'doccards-v12';
+var CARD_SIZES = [61, 79, 95, 122];
 var SUITS = ['s','h','c','d'];
 var RANKS = [1,2,3,4,5,6,7,8,9,10,11,12,13];
 

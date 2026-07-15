@@ -9,7 +9,10 @@ define(["./solitaire"], function (solitaire) {
             game: null,
         };
         const yui = YUI({
-            base: "/js/yui-unpack/yui/build/",
+            base: "js/yui-unpack/yui/build/",
+            root: "js/yui-unpack/yui/build/",
+            combine: false,
+            comboBase: "/js/yui-unpack/yui/build/combo?",
             filter: "min",
         });
         let Y;
@@ -117,22 +120,23 @@ define(["./solitaire"], function (solitaire) {
                 document.body.classList.remove(_currentGameClass);
             }
             const slug = GAME_SLUGS[gameKey] || gameKey;
+            const className = games[gameKey] || gameKey;
             const cls = "game-" + slug;
             document.body.classList.add(cls);
-            document.body.classList.toggle("game-has-deck", !!GAMES_WITH_DECK[gameKey]);
-            document.body.classList.toggle("game-no-deck", !GAMES_WITH_DECK[gameKey]);
+            document.body.classList.toggle("game-has-deck", !!GAMES_WITH_DECK[className]);
+            document.body.classList.toggle("game-no-deck", !GAMES_WITH_DECK[className]);
             _currentGameClass = cls;
-        }
-        function switchToGame(name) {
-            active.name = name;
-            active.game = Y.Solitaire[games[name]];
-            setGameBodyClass(games[name]);
         }
         function playGame(name) {
             switchToGame(name);
 
             try { $.jStorage.set("FossSolitairey_options", name); } catch (e) {}
             newGame();
+        }
+        function switchToGame(name) {
+            active.name = name;
+            active.game = Y.Solitaire[games[name]];
+            setGameBodyClass(name);
         }
         const GameChooser = {
             selected: null,

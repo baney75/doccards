@@ -116,6 +116,10 @@ removed from this repository. If an old `doccards` Worker still exists on
 Cloudflare, delete it in the Cloudflare dashboard (this environment has no CF
 API credentials to tear it down remotely).
 
+A meta Content-Security-Policy is set in `index.html` (YUI 3 requires
+`'unsafe-eval'`). GitHub Pages cannot set `X-Frame-Options` /
+`frame-ancestors` HTTP headers; those need an edge proxy if you want them.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for the workflow. Spoiler: there isn't
