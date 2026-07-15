@@ -4,7 +4,7 @@
 built as a tribute to Grandpa and to the open-source heritage of
 [Solitairey](https://github.com/foss-card-games/Solitairey).
 
-[Play it live →](https://doccards.barnlabs.net)
+[Play it live →](https://baney75.github.io/)
 
 ## About
 
@@ -47,16 +47,29 @@ pnpm dev       # or: npx serve public -l 3000 -s
 
 Then open <http://localhost:3000>.
 
-## Production build & deploy
+## Production deploy (GitHub Pages)
 
-This is a static site — no build step. Deploy `public/` to any static host:
+**Live site:** <https://baney75.github.io/>
 
-- **Cloudflare Pages** — connect the repo, set build output to `public/`
-- **Netlify / Vercel / GitHub Pages** — same thing
-- **Plain S3 + CloudFront** — upload `public/` to a bucket
+This is a static site — no compile step. The deployable artifact is the
+contents of `public/`.
 
-If you want a Cloudflare Worker in front of it (for security headers, custom
-routing, etc.), see `worker.example.js` and add your own `wrangler.toml`.
+### Repository name
+
+For the game to load at the root URL (`https://baney75.github.io/`), the
+GitHub repository must be named **`baney75.github.io`** (a GitHub user site).
+If the repo is still named something else (e.g. `doccards`), rename it in
+**Settings → General → Repository name** before publishing.
+
+### Publish
+
+1. Stage the site locally (optional, useful for CI):
+   ```bash
+   pnpm pages:build   # copies public/ → _site/
+   ```
+2. In the repo, go to **Settings → Pages** and publish from `public/` (or use a
+   GitHub Actions workflow that deploys `_site/` or `public/`).
+3. Push to `main`; GitHub Pages serves the static files.
 
 ## Project structure
 
@@ -74,7 +87,6 @@ public/
     doccards-games.js # Bundled game definitions (do not edit)
   brand-logo.jpg      # Round Doc's Cards mark
   green.webp          # Felt background
-worker.js             # Cloudflare Worker: serves static, applies security headers
 ```
 
 ## Tech

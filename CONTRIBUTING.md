@@ -11,7 +11,8 @@ small changes, and Grandpa being able to play it.
    `git checkout -b fix/your-fix-name`
 3. **Keep the change focused.** One concern per PR. Smaller is better.
 4. **Run the smoke test** before opening the PR:
-   - `pnpm dev` and load <http://localhost:3000>
+   - `pnpm dev` (serves `public/` at <http://localhost:3000>) — same layout
+     GitHub Pages will ship
    - Click through: Freecell → Klondike → Spider → back to Klondike
    - Click the stock in Klondike three times
    - Undo a move
@@ -50,7 +51,6 @@ small changes, and Grandpa being able to play it.
 | `public/js/application.js` | Game registry, switch | Yes, carefully |
 | `public/js/all.js` | Bundled YUI 3 + Solitairey | No |
 | `public/js/doccards-games.js` | Bundled game rules | No |
-| `worker.js` | Cloudflare Worker | Yes |
 
 ## Reporting bugs
 

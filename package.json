@@ -5,10 +5,9 @@
   "private": true,
   "scripts": {
     "dev": "npx serve public -l 3000 -s",
-    "deploy": "npx wrangler deploy",
-    "preview": "npx wrangler dev"
+    "pages:build": "rm -rf _site && cp -r public _site && echo 'Deployable site ready in _site/'"
   },
   "devDependencies": {
-    "wrangler": "^4.0.0"
+    "serve": "^14.2.6"
   }
 }
