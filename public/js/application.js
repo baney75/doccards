@@ -5,10 +5,13 @@ define(["./solitaire"], function (solitaire) {
     let enable_solitairey_ui = true;
     (function () {
         const active = {
-            name: "freecell", // name: "klondike",
+            name: "spider1s",
             game: null,
         };
-        const yui = YUI({ base: "js/yui-unpack/yui/build/" });
+        const yui = YUI({
+            base: "/js/yui-unpack/yui/build/",
+            filter: "min",
+        });
         let Y;
         const games = {
             agnes: "Agnes",
@@ -287,17 +290,43 @@ define(["./solitaire"], function (solitaire) {
         };
 
         function loadOptions() {
-             var saved = null;
-             try { saved = localStorage.getItem("FossSolitairey_options"); } catch (e) {}
-             if (saved) {
-                 try { saved = JSON.parse(saved); } catch (e) { saved = null; }
-             }
-             if (saved) {
-                 active.name = saved;
+             var params = new URLSearchParams(window.location.search || "");
+             var fromQuery = params.get("game");
+             if (fromQuery && games[fromQuery]) {
+                 active.name = fromQuery;
+             } else {
+                 var saved = null;
+                 try { saved = localStorage.getItem("FossSolitairey_options"); } catch (e) {}
+                 if (saved) {
+                     try { saved = JSON.parse(saved); } catch (e) { saved = null; }
+                 }
+                 if (saved && games[saved]) {
+                     active.name = saved;
+                 }
              }
 
              Themes.load("dondorf");
          }
+
+        function confirmDestructive(message, onConfirm) {
+            var moves = 0;
+            try {
+                if (typeof DCUI !== "undefined" && DCUI._moveCount) {
+                    moves = DCUI._moveCount;
+                }
+            } catch (e) {}
+            if (moves <= 0) {
+                onConfirm();
+                return;
+            }
+            if (typeof DCUI !== "undefined" && DCUI.confirmAction) {
+                DCUI.confirmAction(message, onConfirm);
+                return;
+            }
+            if (window.confirm(message)) {
+                onConfirm();
+            }
+        }
         function attachResize() {
             let timer;
             const delay = 250;
@@ -322,7 +351,9 @@ define(["./solitaire"], function (solitaire) {
             Y.on("newAppGame", function () {
                 return newGame();
             });
-            Y.on("click", restart, Y.one("#restart"));
+            Y.on("click", function () {
+                confirmDestructive("Restart this hand from the beginning?", restart);
+            }, Y.one("#restart"));
             Y.on(
                 "click",
                 function () {
@@ -330,7 +361,9 @@ define(["./solitaire"], function (solitaire) {
                 },
                 Y.one("#choose_game"),
             );
-            Y.on("click", newGame, Y.one("#new_deal"));
+            Y.on("click", function () {
+                confirmDestructive("Deal a brand-new hand? Your current progress will be lost.", newGame);
+            }, Y.one("#new_deal"));
             Y.on(
                 "click",
                 function () {
@@ -355,11 +388,29 @@ define(["./solitaire"], function (solitaire) {
             }
             Y.on("click", hideChromeStoreLink, Y.one(".chromestore"));
 
-            function showDescription(e) {
+            function expandDescription(e) {
+                var target = e.target && e.target._node ? e.target._node : e.target;
+                if (target && target.classList && target.classList.contains("choose")) {
+                    return;
+                }
+                if (target && target.closest && target.closest("button.choose")) {
+                    return;
+                }
+                if (target && target.closest && target.closest(".fav-star")) {
+                    return;
+                }
                 GameChooser.select(e.currentTarget._node.id);
-                GameChooser.choose();
             }
-            Y.delegate("click", showDescription, "#descriptions", "li");
+            function playFromChooser(e) {
+                e.halt();
+                var li = e.currentTarget.ancestor("li");
+                if (li) {
+                    GameChooser.select(li.get("id"));
+                    GameChooser.choose();
+                }
+            }
+            Y.delegate("click", expandDescription, "#descriptions", "li");
+            Y.delegate("click", playFromChooser, "#descriptions", "button.choose");
             Y.one("document").on("keydown", function (e) {
                 e.keyCode === 27 && GameChooser.hide();
             });
@@ -455,30 +506,38 @@ define(["./solitaire"], function (solitaire) {
                 }
             },
         };
+        function pickThemeSize() {
+            var minDim = Math.min(window.innerWidth, window.innerHeight);
+            var bigCards = false;
+            try {
+                bigCards = localStorage.getItem("doccards_big_cards") === "true";
+            } catch (e) {}
+            var size = 122;
+            if (minDim < 500) {
+                size = bigCards ? 79 : 61;
+            } else if (minDim < 900) {
+                size = bigCards ? 95 : 79;
+            } else if (bigCards) {
+                size = 122;
+            }
+            Themes.set("dondorf", size);
+            if (typeof Logger !== "undefined") {
+                Logger.info("auto_scale", { size: size, bigCards: bigCards, minDim: minDim });
+            }
+            return size;
+        }
+
          function _my_load_func() {
             attachEvents();
             loadOptions();
+            pickThemeSize();
 
             Preloader.preload();
             Preloader.loaded(function () {
-                // Auto-scale cards based on viewport
-                (function () {
-                    try {
-                        var minDim = Math.min(window.innerWidth, window.innerHeight);
-                        if (minDim < 500) {
-                            Themes.set("dondorf", 61);
-                            if (typeof Logger !== "undefined") Logger.info("auto_scale", { size: 61, reason: "small_screen" });
-                        } else if (minDim < 900) {
-                            Themes.set("dondorf", 79);
-                            if (typeof Logger !== "undefined") Logger.info("auto_scale", { size: 79, reason: "medium_screen" });
-                        }
-                    } catch (e) {
-                        if (typeof Logger !== "undefined") Logger.warn("auto_scale_failed", { error: e.message });
-                    }
-                })();
-
-                // showChromeStoreLink();
                 playGame(active.name);
+                if (typeof DCUI !== "undefined" && DCUI.afterGameReady) {
+                    DCUI.afterGameReady();
+                }
             });
 
             GameChooser.init();
@@ -559,6 +618,9 @@ define(["./solitaire"], function (solitaire) {
                 newGame: newGame,
                 clearDOM: clearGame,
                 switchToGame: switchToGame,
+                Themes: Themes,
+                pickThemeSize: pickThemeSize,
+                activeName: function () { return active.name; },
             };
         }
         schedule = function (cb) {

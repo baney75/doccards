@@ -60,9 +60,18 @@ define(["./solitaire"], function (solitaire) {
             });
 
             function explodeFoundations() {
-                const delay = 500,
-                    duration = 900,
-                    interval = 900;
+                const prefersReduced =
+                    typeof window !== "undefined" &&
+                    window.matchMedia &&
+                    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+                let delay = prefersReduced ? 0 : 500;
+                const duration = prefersReduced ? 0 : 900;
+                const interval = prefersReduced ? 0 : 900;
+
+                if (prefersReduced) {
+                    Statistics.winDisplay();
+                    return;
+                }
 
                 getGame().eachStack(function (stack) {
                     stack.eachCard(function (card) {
@@ -77,14 +86,14 @@ define(["./solitaire"], function (solitaire) {
                         }
 
                         node.plug(Y.Breakout, { columns: 5 });
-                        (function (node) {
+                        (function (node, startDelay) {
                             setTimeout(function () {
                                 node.breakout.explode({
                                     random: 0.65,
                                     duration: duration,
                                 });
-                            }, delay);
-                        })(node);
+                            }, startDelay);
+                        })(node, delay);
 
                         delay += interval;
                     });

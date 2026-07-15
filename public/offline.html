@@ -5,6 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>Doc's Cards — Offline</title>
     <style>
+        @font-face {
+            font-family: "Playfair Display";
+            font-weight: 700;
+            font-display: swap;
+            src: url("fonts/playfair-display-latin-700-normal.woff2") format("woff2");
+        }
+        @font-face {
+            font-family: "Inter";
+            font-weight: 400;
+            font-display: swap;
+            src: url("fonts/inter-latin-400-normal.woff2") format("woff2");
+        }
         body {
             margin: 0;
             padding: 0;
@@ -38,14 +50,24 @@
             font-size: 3rem;
             margin-bottom: 12px;
         }
+        button {
+            background: linear-gradient(to bottom, #9C1E1E, #7a1616);
+            color: #F8F1E3;
+            border: none;
+            border-radius: 8px;
+            padding: 12px 28px;
+            font-size: 1rem;
+            cursor: pointer;
+            min-height: 44px;
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <div class="icon">&#x1F0CF;</div>
         <h1>You're Offline</h1>
-        <p>Your game is saved. Reconnect to load new games or play a saved game.</p>
-        <button onclick="window.location.reload()" style="background: linear-gradient(to bottom, #9C1E1E, #7a1616); color: #F8F1E3; border: none; border-radius: 8px; padding: 12px 28px; font-size: 1rem; cursor: pointer; min-height: 44px;">Try Again</button>
+        <p>Your game is saved. Reconnect to load Doc's Cards, or refresh once you're back online.</p>
+        <button type="button" onclick="window.location.reload()">Try Again</button>
     </div>
 </body>
 </html>

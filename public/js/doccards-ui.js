@@ -1,37 +1,71 @@
 (function (root) {
   "use strict";
 
+  var DIFFICULTY = {
+    golf: "easy",
+    "grandfathers-clock": "easy",
+    spider1s: "easy",
+    "monte-carlo": "easy",
+    "will-o-the-wisp": "easy",
+    agnes: "easy",
+    klondike: "classic",
+    klondike1t: "classic",
+    freecell: "classic",
+    yukon: "classic",
+    "flower-garden": "classic",
+    "tri-towers": "classic",
+    spider: "hard",
+    spider2s: "hard",
+    spiderette: "hard",
+    "forty-thieves": "hard",
+    scorpion: "hard",
+    "russian-solitaire": "hard",
+    pyramid: "hard"
+  };
+
   var DCUI = {
     _moveCount: 0,
     _startTime: null,
     _hudEl: null,
     _dealEl: null,
     _rulesOverlay: null,
+    _confirmOverlay: null,
     _favorites: [],
     _tickInterval: null,
     _toastTimeout: null,
+    _eventsBound: false,
+    _difficultyFilter: "all",
     BIG_CARDS_KEY: "doccards_big_cards",
     FAVORITES_KEY: "doccards_favorites",
+    COACH_KEY: "doccards_coach_seen",
 
     init: function () {
       this.createRulesButton();
       this.createRulesOverlay();
+      this.createConfirmOverlay();
       this.createAccessibilityToggle();
       this.createDealDisplay();
       this.createSoundToggle();
       this.createHUD();
       this.loadFavorites();
+      this.tagDifficulties();
       this.hookEvents();
       Logger.info("dcui_initialized");
     },
 
+    afterGameReady: function () {
+      this.hookEvents();
+      this.renderFavorites();
+      this.updateDealNumber();
+      this.showCoachIfNeeded();
+    },
+
     hookEvents: function () {
       var self = this;
-
-      var Y_ = function () { return root.Y; };
+      if (this._eventsBound) return;
 
       var bind = function () {
-        var Y = Y_();
+        var Y = root.Y;
         if (!Y || !Y.Solitaire) return false;
         try {
           Y.on("newGame", function () {
@@ -55,12 +89,16 @@
           Y.on("load", function () {
             setTimeout(function () { self.updateDealNumber(); }, 300);
           });
+          Y.on("afterSetup", function () {
+            self.updateDealNumber();
+          });
 
           self.resetHUD();
           self.showHUD();
           self.updateDealNumber();
           setTimeout(function () { self.renderFavorites(); }, 300);
-
+          self._eventsBound = true;
+          Logger.info("dcui_events_bound");
           return true;
         } catch (e) {
           Logger.warn("dcui_bind_failed", { error: e.message });
@@ -70,27 +108,15 @@
 
       if (bind()) return;
 
-      var Y = Y_();
-      if (Y) {
-        Y.on("afterSetup", function () { bind(); });
-        Y.on("newGame", function () {
-          setTimeout(function () {
-            if (!bind()) {
-              Y.on("afterSetup", function () { bind(); });
-            }
-          }, 500);
-        });
-      }
-
       var retries = 0;
-      var maxRetries = 20;
+      var maxRetries = 40;
       var poll = function () {
         if (bind()) return;
         retries++;
-        if (retries < maxRetries) setTimeout(poll, 300);
+        if (retries < maxRetries) setTimeout(poll, 250);
         else Logger.warn("dcui_hook_timeout");
       };
-      setTimeout(poll, 500);
+      setTimeout(poll, 200);
 
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.addEventListener("controllerchange", function () {
@@ -99,6 +125,7 @@
         navigator.serviceWorker.ready.then(function (reg) {
           reg.addEventListener("updatefound", function () {
             var newWorker = reg.installing;
+            if (!newWorker) return;
             newWorker.addEventListener("statechange", function () {
               if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
                 self._showToast("Update available — refresh to update.");
@@ -112,7 +139,8 @@
     createRulesButton: function () {
       var btn = document.createElement("button");
       btn.id = "rules-btn";
-      btn.textContent = "?";
+      btn.type = "button";
+      btn.innerHTML = '<span class="fab-glyph">?</span><span class="fab-label">Rules</span>';
       btn.title = "Game Rules";
       btn.setAttribute("aria-label", "Show game rules");
       btn.addEventListener("click", this.showRules.bind(this));
@@ -131,6 +159,7 @@
       body.id = "rules-body";
       var closeBtn = document.createElement("button");
       closeBtn.id = "rules-close";
+      closeBtn.type = "button";
       closeBtn.textContent = "Close";
       closeBtn.addEventListener("click", this.hideRules.bind(this));
       inner.appendChild(title);
@@ -142,6 +171,51 @@
       });
       document.body.appendChild(overlay);
       this._rulesOverlay = overlay;
+    },
+
+    createConfirmOverlay: function () {
+      var overlay = document.createElement("div");
+      overlay.id = "dc-confirm";
+      overlay.className = "rules-overlay hidden";
+      overlay.innerHTML =
+        '<div class="rules-content confirm-content" role="dialog" aria-modal="true" aria-labelledby="dc-confirm-title">' +
+        '<h2 id="dc-confirm-title">Please confirm</h2>' +
+        '<p id="dc-confirm-body"></p>' +
+        '<div class="confirm-actions">' +
+        '<button type="button" id="dc-confirm-cancel" class="doccards-btn doccards-btn-secondary">Cancel</button>' +
+        '<button type="button" id="dc-confirm-ok" class="doccards-btn">Confirm</button>' +
+        "</div></div>";
+      document.body.appendChild(overlay);
+      this._confirmOverlay = overlay;
+      var self = this;
+      document.getElementById("dc-confirm-cancel").addEventListener("click", function () {
+        self._hideConfirm();
+      });
+      overlay.addEventListener("click", function (e) {
+        if (e.target === overlay) self._hideConfirm();
+      });
+    },
+
+    confirmAction: function (message, onConfirm) {
+      var overlay = this._confirmOverlay;
+      if (!overlay) {
+        if (window.confirm(message)) onConfirm();
+        return;
+      }
+      document.getElementById("dc-confirm-body").textContent = message;
+      overlay.className = "rules-overlay";
+      var ok = document.getElementById("dc-confirm-ok");
+      var self = this;
+      var handler = function () {
+        ok.removeEventListener("click", handler);
+        self._hideConfirm();
+        onConfirm();
+      };
+      ok.addEventListener("click", handler);
+    },
+
+    _hideConfirm: function () {
+      if (this._confirmOverlay) this._confirmOverlay.className = "rules-overlay hidden";
     },
 
     _gameDataMap: {
@@ -191,7 +265,8 @@
     createAccessibilityToggle: function () {
       var btn = document.createElement("button");
       btn.id = "a11y-toggle";
-      btn.textContent = "Aa";
+      btn.type = "button";
+      btn.innerHTML = '<span class="fab-glyph">Aa</span><span class="fab-label">Big</span>';
       btn.title = "Toggle large cards and text";
       btn.setAttribute("aria-label", "Toggle large cards and text for easier reading");
       btn.addEventListener("click", this.toggleBigCards.bind(this));
@@ -209,23 +284,39 @@
       if (btn) btn.classList.toggle("active", isBig);
       try {
         var Y = root.Y;
-        if (Y && Y.Solitaire && Y.Solitaire.game) {
+        if (Y && Y.Solitaire && Y.Solitaire.Application && Y.Solitaire.Application.pickThemeSize) {
+          Y.Solitaire.Application.pickThemeSize();
+          Y.fire("beforeResize");
+          if (Y.Solitaire.game) {
+            Y.Solitaire.Application && Y.fire("afterSetup");
+          }
+        } else if (Y) {
           Y.fire("beforeResize");
         }
       } catch (e) {}
+      // Soft reload of card images for new theme size
+      try {
+        var Y2 = root.Y;
+        if (Y2 && Y2.Solitaire && Y2.Solitaire.Application && typeof window !== "undefined") {
+          window.dispatchEvent(new Event(Y2.Solitaire.Application.resizeEvent || "resize"));
+        }
+      } catch (e2) {}
       Logger.info("toggle_big_cards", { enabled: isBig });
     },
 
     createSoundToggle: function () {
       var btn = document.createElement("button");
       btn.id = "sound-toggle";
+      btn.type = "button";
       btn.title = "Toggle sound";
-      btn.setAttribute("aria-label", "Toggle sound effects");
-      btn.textContent = "\uD83D\uDD0A";
+      btn.setAttribute("aria-label", "Sound on");
+      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">\uD83D\uDD0A</span><span class="fab-label">Sound</span>';
       btn.addEventListener("click", function () {
         if (typeof DCSound !== "undefined") {
           DCSound.enabled(!DCSound.enabled());
-          btn.textContent = DCSound.enabled() ? "\uD83D\uDD0A" : "\uD83D\uDD07";
+          var on = DCSound.enabled();
+          btn.querySelector(".fab-glyph").textContent = on ? "\uD83D\uDD0A" : "\uD83D\uDD07";
+          btn.setAttribute("aria-label", on ? "Sound on" : "Sound off");
         }
       });
       document.body.appendChild(btn);
@@ -312,6 +403,30 @@
       if (this._hudEl) this._hudEl.className = "dc-hud hidden";
     },
 
+    invalidMove: function () {
+      document.body.classList.add("dc-invalid-nudge");
+      var self = this;
+      setTimeout(function () { document.body.classList.remove("dc-invalid-nudge"); }, 280);
+      this._showToast("That card can’t go there");
+    },
+
+    tagDifficulties: function () {
+      var items = document.querySelectorAll("#descriptions > li");
+      for (var i = 0; i < items.length; i++) {
+        var li = items[i];
+        var level = DIFFICULTY[li.id] || "classic";
+        li.setAttribute("data-difficulty", level);
+        if (!li.querySelector(".difficulty-tag")) {
+          var tag = document.createElement("span");
+          tag.className = "difficulty-tag difficulty-" + level;
+          tag.textContent = level.charAt(0).toUpperCase() + level.slice(1);
+          var h2 = li.querySelector("h2");
+          if (h2) h2.appendChild(tag);
+          else li.insertBefore(tag, li.firstChild);
+        }
+      }
+    },
+
     loadFavorites: function () {
       try {
         this._favorites = JSON.parse(localStorage.getItem(this.FAVORITES_KEY)) || [];
@@ -340,13 +455,17 @@
 
     renderFavorites: function () {
       var self = this;
+      var list = document.getElementById("descriptions");
       var listItems = document.querySelectorAll("#descriptions > li");
+      var favs = [];
+      var rest = [];
       for (var i = 0; i < listItems.length; i++) {
         var li = listItems[i];
         var gameId = li.id;
         var starBtn = li.querySelector(".fav-star");
         if (!starBtn) {
           starBtn = document.createElement("button");
+          starBtn.type = "button";
           starBtn.className = "fav-star";
           starBtn.setAttribute("aria-label", "Pin this game");
           starBtn.addEventListener("click", function (e) {
@@ -359,13 +478,19 @@
           starBtn.textContent = "\u2605";
           starBtn.className = "fav-star active";
           li.classList.add("favorited");
+          favs.push(li);
         } else {
           starBtn.textContent = "\u2606";
           starBtn.className = "fav-star";
           li.classList.remove("favorited");
+          rest.push(li);
         }
       }
+      if (list) {
+        favs.concat(rest).forEach(function (node) { list.appendChild(node); });
+      }
       this._renderFilterBar();
+      this.applyFilters();
     },
 
     _renderFilterBar: function () {
@@ -373,28 +498,52 @@
       var chooser = document.getElementById("game-chooser-contents");
       if (!chooser) return;
 
-      if (this._favorites.length > 0 && !filterBar) {
+      if (!filterBar) {
         filterBar = document.createElement("div");
         filterBar.id = "fav-filter";
         var self = this;
-        var allBtn = document.createElement("button");
-        allBtn.textContent = "All Games";
-        allBtn.className = "filter-btn active";
-        allBtn.addEventListener("click", function () { self.showAll(); });
-        var myBtn = document.createElement("button");
-        myBtn.textContent = "My Games";
-        myBtn.className = "filter-btn";
-        myBtn.addEventListener("click", function () { self.showMyGames(); });
-        filterBar.appendChild(allBtn);
-        filterBar.appendChild(myBtn);
+        function chip(label, key) {
+          var b = document.createElement("button");
+          b.type = "button";
+          b.textContent = label;
+          b.className = "filter-btn";
+          b.dataset.filter = key;
+          b.addEventListener("click", function () {
+            self._difficultyFilter = key;
+            if (key === "mine") self.showMyGames();
+            else if (key === "all") self.showAll();
+            else self.showDifficulty(key);
+            self._setActiveFilterKey(key);
+          });
+          return b;
+        }
+        filterBar.appendChild(chip("All", "all"));
+        filterBar.appendChild(chip("Easy", "easy"));
+        filterBar.appendChild(chip("Classic", "classic"));
+        filterBar.appendChild(chip("Hard", "hard"));
+        filterBar.appendChild(chip("My Games", "mine"));
         var title = chooser.querySelector(".chooser-title");
         if (title && title.nextSibling) {
           chooser.insertBefore(filterBar, title.nextSibling);
         } else {
           chooser.insertBefore(filterBar, chooser.firstChild);
         }
-      } else if (this._favorites.length === 0 && filterBar) {
-        filterBar.remove();
+        this._setActiveFilterKey("all");
+      }
+    },
+
+    applyFilters: function () {
+      var key = this._difficultyFilter || "all";
+      if (key === "mine") this.showMyGames();
+      else if (key === "all") this.showAll();
+      else this.showDifficulty(key);
+    },
+
+    showDifficulty: function (level) {
+      var items = document.querySelectorAll("#descriptions > li");
+      for (var i = 0; i < items.length; i++) {
+        var d = items[i].getAttribute("data-difficulty");
+        items[i].style.display = d === level ? "" : "none";
       }
     },
 
@@ -403,7 +552,6 @@
       for (var i = 0; i < items.length; i++) {
         items[i].style.display = this.isFavorite(items[i].id) ? "" : "none";
       }
-      this._setActiveFilter("My Games");
     },
 
     showAll: function () {
@@ -411,14 +559,54 @@
       for (var i = 0; i < items.length; i++) {
         items[i].style.display = "";
       }
-      this._setActiveFilter("All Games");
     },
 
-    _setActiveFilter: function (active) {
+    _setActiveFilterKey: function (key) {
       var btns = document.querySelectorAll(".filter-btn");
       for (var i = 0; i < btns.length; i++) {
-        btns[i].classList.toggle("active", btns[i].textContent === active);
+        btns[i].classList.toggle("active", btns[i].dataset.filter === key);
       }
+    },
+
+    showCoachIfNeeded: function () {
+      try {
+        if (localStorage.getItem(this.COACH_KEY) === "1") return;
+      } catch (e) { return; }
+      var tips = [
+        "Deal New Cards starts a fresh hand. Undo takes a move back.",
+        "Tap ? for rules. Tap Aa for bigger cards that are easier to read.",
+        "Choose Game → Easy filters for gentler solitaires. Pin favorites with the star."
+      ];
+      var step = 0;
+      var self = this;
+      var coach = document.createElement("div");
+      coach.id = "dc-coach";
+      coach.className = "dc-coach";
+      coach.innerHTML =
+        '<div class="dc-coach-card">' +
+        '<p id="dc-coach-text"></p>' +
+        '<div class="dc-coach-actions">' +
+        '<button type="button" id="dc-coach-skip" class="doccards-btn doccards-btn-secondary">Skip tips</button>' +
+        '<button type="button" id="dc-coach-next" class="doccards-btn">Next</button>' +
+        "</div></div>";
+      document.body.appendChild(coach);
+      var text = document.getElementById("dc-coach-text");
+      var next = document.getElementById("dc-coach-next");
+      var skip = document.getElementById("dc-coach-skip");
+      function render() {
+        text.textContent = tips[step];
+        next.textContent = step === tips.length - 1 ? "Got it" : "Next";
+      }
+      function done() {
+        try { localStorage.setItem(self.COACH_KEY, "1"); } catch (e) {}
+        coach.remove();
+      }
+      next.addEventListener("click", function () {
+        if (step >= tips.length - 1) done();
+        else { step++; render(); }
+      });
+      skip.addEventListener("click", done);
+      render();
     },
 
     _showToast: function (msg) {

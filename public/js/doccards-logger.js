@@ -76,30 +76,9 @@
     },
 
     _flushErrors: function () {
-      if (this._errorQueue.length === 0) return;
-      var batch = this._errorQueue;
+      // Static GitHub Pages host — keep errors in the console only.
       this._errorQueue = [];
       this._flushTimer = null;
-
-      try {
-        var self = this;
-        var xhr = new XMLHttpRequest();
-        xhr.open("POST", "/api/client-errors", true);
-        xhr.setRequestHeader("Content-Type", "application/json");
-        xhr.timeout = 10000;
-        xhr.onreadystatechange = function () {
-          if (xhr.readyState === 4 && xhr.status >= 400) {
-            self._errorQueue = self._errorQueue.concat(batch);
-          }
-        };
-        xhr.ontimeout = function () {
-          self._errorQueue = self._errorQueue.concat(batch);
-        };
-        xhr.send(JSON.stringify({ errors: batch }));
-      } catch (e) {
-        this._errorQueue = this._errorQueue.concat(batch);
-        console.warn("DocCards: Failed to report errors", e);
-      }
     },
   };
 

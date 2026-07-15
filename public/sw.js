@@ -1,5 +1,5 @@
-var CACHE_NAME = 'doccards-v10';
-var CARD_SIZES = [122, 95, 79, 61];
+var CACHE_NAME = 'doccards-v11';
+var CARD_SIZES = [61, 79, 122];
 var SUITS = ['s','h','c','d'];
 var RANKS = [1,2,3,4,5,6,7,8,9,10,11,12,13];
 
@@ -10,7 +10,6 @@ var PRECACHE_URLS = [
   '/cards.css',
   '/custom.css',
   '/green.webp',
-  '/green.jpg',
   '/loading.gif',
   '/trans.gif',
   '/x.gif',
@@ -20,11 +19,17 @@ var PRECACHE_URLS = [
   '/apple-touch-icon-180.png',
   '/pwa-192x192.png',
   '/pwa-512x512.png',
-  '/brand-logo.jpg',
+  '/pwa-maskable-512.png',
+  '/brand-mark.webp',
+  '/brand-mark.png',
+  '/og-image.png',
+  '/fonts/playfair-display-latin-700-normal.woff2',
+  '/fonts/inter-latin-400-normal.woff2',
+  '/fonts/inter-latin-500-normal.woff2',
+  '/fonts/inter-latin-600-normal.woff2',
   '/js/lodash.custom.min.js',
-  '/js/require--debug.js',
   '/js/require.js',
-  '/js/yui-debug.js',
+  '/js/yui-all-min.js',
   '/js/yui-breakout.js',
   '/js/solitaire.js',
   '/js/application.js',
@@ -82,7 +87,9 @@ self.addEventListener('install', function(event) {
     caches.open(CACHE_NAME).then(function(cache) {
       return cache.addAll(PRECACHE_URLS).then(function() {
         var bgCache = [];
-        cardImagesForSize(122).forEach(function(url) { bgCache.push(cacheFile(cache, url)); });
+        CARD_SIZES.forEach(function(size) {
+          cardImagesForSize(size).forEach(function(url) { bgCache.push(cacheFile(cache, url)); });
+        });
         LAYOUT_ICONS.forEach(function(url) { bgCache.push(cacheFile(cache, url)); });
         return Promise.allSettled(bgCache);
       }).then(function() { return self.skipWaiting(); });
@@ -123,7 +130,7 @@ self.addEventListener('fetch', function(event) {
   }
 
   var isJS = url.pathname.match(/\.js$/);
-  var isImage = url.pathname.match(/\.(png|jpg|webp|gif|svg|ico)$/);
+  var isImage = url.pathname.match(/\.(png|jpg|webp|gif|svg|ico|woff2?)$/);
   var isCSS = url.pathname.match(/\.css$/);
 
   if (isJS) {
@@ -161,6 +168,9 @@ self.addEventListener('fetch', function(event) {
       }).catch(function() {
         if (isImage) {
           return caches.match('/trans.gif');
+        }
+        if (isCSS) {
+          return new Response('/* offline */', { status: 503, headers: { 'Content-Type': 'text/css' } });
         }
         return new Response('Offline', { status: 503 });
       });

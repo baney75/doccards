@@ -5,7 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "npx serve public -l 3000 -s",
-    "pages:build": "rm -rf _site && cp -r public _site && echo 'Deployable site ready in _site/'"
+    "pages:build": "bash scripts/pages-build.sh"
   },
   "devDependencies": {
     "serve": "^14.2.6"

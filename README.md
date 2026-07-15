@@ -63,13 +63,16 @@ If the repo is still named something else (e.g. `doccards`), rename it in
 
 ### Publish
 
-1. Stage the site locally (optional, useful for CI):
+1. Stage the site locally (optional):
    ```bash
-   pnpm pages:build   # copies public/ → _site/
+   pnpm pages:build   # copies public/ → _site/ (prunes bulky YUI paths)
    ```
-2. In the repo, go to **Settings → Pages** and publish from `public/` (or use a
-   GitHub Actions workflow that deploys `_site/` or `public/`).
-3. Push to `main`; GitHub Pages serves the static files.
+2. In the repo, go to **Settings → Pages** and set **Source** to **GitHub Actions**.
+3. Push to `main` or `master`; the [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
+   workflow builds `_site/` and deploys it automatically.
+
+The repository must be named **`baney75.github.io`** for the live root URL
+(`https://baney75.github.io/`).
 
 ## Project structure
 
@@ -101,10 +104,17 @@ public/
 
 - 44×44px minimum touch targets throughout
 - `aria-label` and `role="button"` on icon-only controls
-- Big-cards mode toggles a `--dc-card-scale` CSS variable
+- Big-cards mode uses larger card theme images (not CSS scale) so drag still works
 - Reduced-motion respected
 - Sound can be turned off
 - Color contrast passes WCAG AA on the toolbar and HUD
+
+## Hosting note
+
+GitHub Pages only (`https://baney75.github.io/`). Cloudflare Workers/Pages config was
+removed from this repository. If an old `doccards` Worker still exists on
+Cloudflare, delete it in the Cloudflare dashboard (this environment has no CF
+API credentials to tear it down remotely).
 
 ## Contributing
 

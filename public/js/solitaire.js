@@ -637,6 +637,10 @@ define([], function () {
                         node = this.get("dragNode"),
                         proxy = card.createProxyNode();
 
+                    if (typeof DCSound !== "undefined") {
+                        DCSound.cardPickup();
+                    }
+
                     if (proxy) {
                         node.setContent(proxy);
                         !card.proxyStack &&
@@ -649,6 +653,13 @@ define([], function () {
 
                 dragMiss: function () {
                     const card = this.getCard();
+
+                    if (typeof DCSound !== "undefined") {
+                        DCSound.error();
+                    }
+                    if (typeof DCUI !== "undefined" && DCUI.invalidMove) {
+                        DCUI.invalidMove();
+                    }
 
                     Game.unanimated(function () {
                         card.updatePosition();

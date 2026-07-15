@@ -12,7 +12,7 @@
       try {
         localStorage.setItem(_key(key), JSON.stringify(value));
       } catch (e) {
-        Logger.warn("storage", "Failed to set key", { key: key, error: e.message });
+        Logger.warn("storage_set_failed", { key: key, error: e.message });
       }
     },
 
@@ -22,7 +22,7 @@
         if (raw === null) return null;
         return JSON.parse(raw);
       } catch (e) {
-        Logger.warn("storage", "Failed to get key", { key: key, error: e.message });
+        Logger.warn("storage_get_failed", { key: key, error: e.message });
         return null;
       }
     },
@@ -31,7 +31,7 @@
       try {
         localStorage.removeItem(_key(key));
       } catch (e) {
-        Logger.warn("storage", "Failed to delete key", { key: key, error: e.message });
+        Logger.warn("storage_delete_failed", { key: key, error: e.message });
       }
     },
   };

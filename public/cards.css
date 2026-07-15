@@ -377,6 +377,15 @@
 .description button {
   display: none; }
 
+.selected .description blockquote,
+.selected .description h3,
+.selected .description p,
+.selected .description button {
+  display: block; }
+
+.selected .description button.choose {
+  display: inline-block; }
+
 .chromestore {
   position: absolute;
   right: 0;
