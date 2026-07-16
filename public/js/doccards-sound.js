@@ -66,6 +66,21 @@
       return true;
     },
 
+    unlock: function () {
+      if (!this._ctx) {
+        this.init();
+      }
+      if (!this._ctx) return false;
+      var self = this;
+      return this._ctx.resume().then(function () {
+        self._enabled = true;
+        self._savePreference();
+        return true;
+      }).catch(function () {
+        return false;
+      });
+    },
+
     _tone: function (type, freqStart, freqEnd, duration, peak) {
       if (!this._ensure()) return;
       var t0 = this._ctx.currentTime;

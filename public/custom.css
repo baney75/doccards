@@ -345,22 +345,21 @@ body {
   background: rgba(156, 30, 30, 0.08);
 }
 
-/* HUD embedded in toolbar */
+/* HUD in navy header — must be light/gold, not parchment dark */
 #dc-hud {
   position: static !important;
   top: auto !important;
   left: auto !important;
   transform: none !important;
   background: transparent !important;
-  color: #0D2240 !important;
+  color: #F8F1E3 !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
   border: none !important;
-  border-left: 1px solid rgba(13, 34, 64, 0.12) !important;
-  border-right: 1px solid rgba(13, 34, 64, 0.12) !important;
-  padding: 0 14px !important;
-  font-size: 12px !important;
-  height: 44px;
+  border-left: 1px solid rgba(201, 169, 97, 0.35) !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  height: 36px;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -371,15 +370,22 @@ body {
 #dc-hud.hidden { display: none !important; }
 
 #dc-hud .hud-label {
-  color: #6b5a3a;
+  color: #C9A961 !important;
   font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   font-weight: 600;
 }
 
+#dc-hud #dc-moves,
+#dc-hud #dc-time {
+  color: #F8F1E3 !important;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 #dc-hud .hud-sep {
-  color: rgba(13, 34, 64, 0.25);
+  color: rgba(232, 213, 163, 0.45);
   margin: 0;
 }
 
@@ -506,11 +512,20 @@ button:focus-visible,
   display: none !important;
 }
 
-/* ---- Card touch handling ---- */
+/* ---- Card touch handling + sharper scaled bitmaps ---- */
 .card {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   touch-action: manipulation;
+  image-rendering: auto;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  transform: translateZ(0);
+}
+
+.card img,
+img.card {
+  image-rendering: auto;
 }
 
 /* Minimum tap target size (WCAG 2.1) */
@@ -670,22 +685,38 @@ button:focus-visible,
 /* PWA install prompt (iOS fallback) */
 .pwa-ios-prompt {
   position: fixed;
-  bottom: 60px;
+  bottom: calc(72px + env(safe-area-inset-bottom, 0px));
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(13, 34, 64, 0.95);
+  background: rgba(13, 34, 64, 0.96);
   color: #F8F1E3;
   border: 1px solid #C9A961;
-  border-radius: 12px;
-  padding: 12px 16px;
+  border-radius: 14px;
+  padding: 14px 18px;
   font-family: 'Inter', Helvetica, sans-serif;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
+  line-height: 1.45;
   z-index: 10000;
-  max-width: 90vw;
+  max-width: min(360px, 92vw);
   text-align: center;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+  animation: dc-ios-prompt-in 0.35s ease-out;
+}
+
+@keyframes dc-ios-prompt-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.pwa-ios-prompt .pwa-ios-card p {
+  margin: 0 0 8px;
+}
+
+.pwa-ios-prompt .pwa-ios-card p:last-of-type {
+  margin-bottom: 12px;
+  opacity: 0.92;
 }
 
 .pwa-ios-prompt .pwa-icon {
@@ -693,17 +724,19 @@ button:focus-visible,
   margin-bottom: 4px;
 }
 
-.pwa-ios-prompt button {
+.pwa-ios-prompt button,
+.pwa-ios-prompt .doccards-btn {
   display: inline-block;
   background: linear-gradient(to bottom, #b32424, #9C1E1E);
   color: #F8F1E3;
   border: none;
-  border-radius: 6px;
-  padding: 6px 16px;
-  font-size: 0.85rem;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
-  margin-top: 6px;
-  margin-left: 8px;
+  margin-top: 4px;
+  min-height: 44px;
 }
 
 .pwa-ios-prompt button.dismiss {
@@ -1244,6 +1277,16 @@ button:focus-visible,
     min-height: 44px !important;
   }
 
+  #site-footer {
+    /* Keep footer out of the way of FABs / Undo on phones */
+    display: none !important;
+  }
+
+  .solitairey_body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom)) !important;
+  }
+
+  /* Keep play area clear of bottom chrome */
   #rules-btn,
   #a11y-toggle,
   #sound-toggle {
@@ -1252,29 +1295,29 @@ button:focus-visible,
     width: auto;
     height: auto;
     padding: 8px 10px;
-    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 9002;
   }
-  #rules-btn { right: 4px; }
-  #a11y-toggle { right: 56px; }
-  #sound-toggle { left: auto; right: 108px; }
+  #rules-btn { right: 8px; }
+  #a11y-toggle { right: 60px; }
+  #sound-toggle { left: auto; right: 112px; }
 
   .fab-label { display: none; }
 
   .deal-display {
-    left: 4px;
+    left: 8px;
+    right: auto;
+    max-width: calc(100vw - 180px);
     font-size: 0.75rem;
     padding: 6px 10px;
-    bottom: calc(8px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+    z-index: 9001;
   }
 
-  #copy-deal,
-  .fav-star {
-    min-width: 44px;
-    min-height: 44px;
-  }
-
-  #site-footer {
-    padding-bottom: 56px !important;
+  /* Undo must stay easy to hit — emphasize in the menu strip */
+  #menu #undo {
+    font-weight: 700 !important;
+    color: #9C1E1E !important;
   }
 
   .rules-content {

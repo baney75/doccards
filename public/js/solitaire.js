@@ -497,9 +497,15 @@ define([], function () {
                     Card.scale = scale;
 
                     for (const prop in base) {
-                        if (base.hasOwnProperty(prop)) {
-                            Card[prop] = base[prop] * scale;
+                        if (!base.hasOwnProperty(prop)) {
+                            continue;
                         }
+                        // Never multiply non-numeric fields (e.g. theme: "dondorf/122")
+                        if (typeof base[prop] !== "number") {
+                            Card[prop] = base[prop];
+                            continue;
+                        }
+                        Card[prop] = base[prop] * scale;
                     }
                 },
 

@@ -236,7 +236,7 @@ define(["./solitaire"], function (solitaire) {
          */
         const Themes = {
             dondorf: {
-                sizes: [61, 79, 95, 122],
+                sizes: [61, 79, 95, 122, 244],
                 61: {
                     hiddenRankHeight: 7,
                     rankHeight: 25,
@@ -259,6 +259,13 @@ define(["./solitaire"], function (solitaire) {
                     hiddenRankHeight: 15,
                     rankHeight: 48,
                     dimensions: [122, 190],
+                },
+
+                // 2× retina masters — sharper on iPhone/iPad after layout scale
+                244: {
+                    hiddenRankHeight: 30,
+                    rankHeight: 96,
+                    dimensions: [244, 380],
                 },
             },
 
@@ -403,6 +410,14 @@ define(["./solitaire"], function (solitaire) {
                     return;
                 }
                 GameChooser.select(e.currentTarget._node.id);
+                // Touch / narrow screens: one tap plays (Grandpa-friendly).
+                var touchy =
+                    window.matchMedia &&
+                    (window.matchMedia("(pointer: coarse)").matches ||
+                        window.matchMedia("(max-width: 700px)").matches);
+                if (touchy) {
+                    GameChooser.choose();
+                }
             }
             function playFromChooser(e) {
                 e.halt();
@@ -449,10 +464,12 @@ define(["./solitaire"], function (solitaire) {
 
             load: function (path) {
                 const image = new Image();
-
-                image.onload = function () {
+                const done = function () {
                     --this.loadingCount;
                 }.bind(this);
+
+                image.onload = done;
+                image.onerror = done;
                 image.src = path;
 
                 this.loadingCount++;
@@ -495,6 +512,7 @@ define(["./solitaire"], function (solitaire) {
                 });
 
                 this.load(Y.Solitaire.Card.base.theme + "/facedown.png");
+                this.load(Y.Solitaire.Card.base.theme + "/freeslot.png");
 
                 if (enable_solitairey_ui) {
                     icons.forEach(function (image) {
@@ -511,21 +529,37 @@ define(["./solitaire"], function (solitaire) {
         };
         function pickThemeSize() {
             var minDim = Math.min(window.innerWidth, window.innerHeight);
+            var dpr = window.devicePixelRatio || 1;
+            var effective = minDim * Math.min(dpr, 3);
             var bigCards = false;
             try {
                 bigCards = localStorage.getItem("doccards_big_cards") === "true";
             } catch (e) {}
+            // Prefer larger bitmaps on retina so cards stay sharp when layout-scaled.
+            // Never use 61 on modern displays — soft and muddy on iPhone/iPad.
             var size = 122;
-            if (minDim < 500) {
-                size = bigCards ? 79 : 61;
-            } else if (minDim < 900) {
+            if (dpr >= 2 && minDim >= 700) {
+                // iPad / large tablets: 2× masters
+                size = 244;
+            } else if (dpr >= 2) {
+                // iPhone / retina phones
+                size = bigCards ? 244 : 122;
+            } else if (effective < 700) {
                 size = bigCards ? 95 : 79;
-            } else if (bigCards) {
-                size = 122;
+            } else if (effective < 1200) {
+                size = bigCards ? 122 : 95;
+            } else {
+                size = bigCards ? 244 : 122;
             }
             Themes.set("dondorf", size);
             if (typeof Logger !== "undefined") {
-                Logger.info("auto_scale", { size: size, bigCards: bigCards, minDim: minDim });
+                Logger.info("auto_scale", {
+                    size: size,
+                    bigCards: bigCards,
+                    minDim: minDim,
+                    dpr: dpr,
+                    effective: effective,
+                });
             }
             return size;
         }
@@ -567,7 +601,13 @@ define(["./solitaire"], function (solitaire) {
             const el = game.container();
             var padding = { x: Y.Solitaire.padding.x, y: Y.Solitaire.padding.y };
             var footerEl = document.getElementById('site-footer');
-            if (footerEl) { padding.y = Math.max(padding.y, footerEl.offsetHeight); }
+            if (footerEl && footerEl.offsetParent !== null) {
+              padding.y = Math.max(padding.y, footerEl.offsetHeight);
+            }
+            // Reserve space for bottom FABs on phones
+            if (window.matchMedia && window.matchMedia('(max-width: 480px)').matches) {
+              padding.y = Math.max(padding.y, 72);
+            }
             var offset = Y.Solitaire.offset;
             var width = el.get("winWidth") - padding.x;
             var height = el.get("winHeight") - padding.y;

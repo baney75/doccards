@@ -30,6 +30,15 @@
     <link rel="icon" type="image/png" sizes="114x114" href="apple-touch-icon-precomposed.png" />
     <link rel="apple-touch-icon" href="apple-touch-icon-precomposed.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon-180.png" />
+    <!-- iOS/iPadOS home-screen splash (portrait) -->
+    <link rel="apple-touch-startup-image" href="splash/iphone-14-pro-max.png" media="(device-width: 430px) and (device-height: 932px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="splash/iphone-14-pro.png" media="(device-width: 393px) and (device-height: 852px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="splash/iphone-12.png" media="(device-width: 390px) and (device-height: 844px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="splash/iphone-x.png" media="(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="splash/iphone-xs-max.png" media="(device-width: 414px) and (device-height: 896px) and (-webkit-device-pixel-ratio: 3) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="splash/ipad-12-9.png" media="(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="splash/ipad-11.png" media="(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
+    <link rel="apple-touch-startup-image" href="splash/ipad-9-7.png" media="(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2) and (orientation: portrait)" />
     <link rel="preload" href="fonts/playfair-display-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="fonts/inter-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="preload" href="js/lodash.custom.min.js" as="script" />
@@ -52,16 +61,22 @@ requirejs.config({
     <script src="js/yui-breakout.js"></script>
 
     <script>
-        require(['./solver-freecell'], function (solver) {
-            Logger.info('solver_freecell_loaded');
-            require(['./solitaire', './iphone', './auto-stack-clear', './auto-turnover', './statistics', './autoplay', './application', './freecell'],
-                function (solitaire, iphone, auto_stack, auto_turn, statistics, autoplay, application, freecell) {
-                    solitaire.setUI(true);
-                    application.setUI(true);
-                    Logger.info('game_initialized');
-                    if (typeof DCUI !== 'undefined') DCUI.init();
-                });
-        });
+        // Boot the game first — Freecell solver is lazy-loaded later.
+        require(['./solitaire', './auto-stack-clear', './auto-turnover', './statistics', './autoplay', './application', './freecell'],
+            function (solitaire, auto_stack, auto_turn, statistics, autoplay, application, freecell) {
+                solitaire.setUI(true);
+                application.setUI(true);
+                Logger.info('game_initialized');
+                if (typeof DCUI !== 'undefined') DCUI.init();
+                // Warm Freecell solver in the background (not on critical path).
+                setTimeout(function () {
+                    require(['./solver-freecell'], function () {
+                        Logger.info('solver_freecell_loaded');
+                    }, function (err) {
+                        Logger.warn('solver_freecell_deferred_failed', { error: String(err && err.message || err) });
+                    });
+                }, 2500);
+            });
     </script>
 
     <script src="js/doccards-games.js"></script>
@@ -69,8 +84,24 @@ requirejs.config({
     <script>
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
+            var refreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function () {
+                if (refreshing) return;
+                refreshing = true;
+                // Auto-apply updates in installed PWAs (critical on iOS standalone).
+                window.location.reload();
+            });
             navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
                 Logger.info('sw_registered', { scope: reg.scope });
+                // Check for updates when the app becomes visible again.
+                document.addEventListener('visibilitychange', function () {
+                    if (document.visibilityState === 'visible' && reg.update) {
+                        reg.update();
+                    }
+                });
+                setInterval(function () {
+                    if (reg.update) reg.update();
+                }, 60 * 60 * 1000);
             }).catch(function (err) {
                 Logger.error('sw_register_failed', { error: err.message });
             });
@@ -115,7 +146,7 @@ requirejs.config({
                     <h2>Agnes</h2>
                     <div class="description agnes">
                         <div class="layout"></div>
-                        <blockquote>Agnes tries be an easier Klondike variety by exposing many cards for play simultaneously. Due to how the foundations are built, it is also requires a bit more skill than most solitaire games.</blockquote>
+                        <blockquote>Agnes tries to be an easier Klondike variety by exposing many cards for play simultaneously. Due to how the foundations are built, it also requires a bit more skill than most solitaire games.</blockquote>
                         <h3>Foundation:</h3>
                         <p>The first card dealt to the foundation (the seed) is the rank the rest of the foundations must start with. Build 13 cards on each foundation in series and suit; Aces wrap around to Kings.</p>
                         <h3>Tableau:</h3>
@@ -131,7 +162,7 @@ requirejs.config({
                     <h2>Flower Garden</h2>
                     <div class="description flower-garden">
                         <div class="layout"></div>
-                        <blockquote>Flower Garden is a solitaire game that provides a nice mix of skill and luck. You have a good chance of besting this solitaire if you can make a blank tableau space without playing to many cards from the garden.</blockquote>
+                        <blockquote>Flower Garden is a solitaire game that provides a nice mix of skill and luck. You have a good chance of besting this solitaire if you can make a blank tableau space without playing too many cards from the garden.</blockquote>
                         <h3>Foundation:</h3>
                         <p>Built in series from Ace to King, in suit.</p>
                         <h3>Play:</h3>
@@ -143,7 +174,7 @@ requirejs.config({
                     <h2>Forty Thieves</h2>
                     <div class="description forty-thieves">
                         <div class="layout"></div>
-                        <blockquote>Forty Thieves (aka Napoleon at Saint Helena, Roosevelt at San Juan, Big Forty) is a among the most popular two pack solitaire games. It is also one of the most notoriously difficult solitaires to win in general, requiring a great amount of skill and luck.</blockquote>
+                        <blockquote>Forty Thieves (aka Napoleon at Saint Helena, Roosevelt at San Juan, Big Forty) is among the most popular two-pack solitaire games. It is also one of the most notoriously difficult solitaires to win, requiring a great amount of skill and luck.</blockquote>
                         <h3>Foundation:</h3>
                         <p>Built in series from Ace to King, in suit.</p>
                         <h3>Play:</h3>
@@ -157,7 +188,7 @@ requirejs.config({
                     <h2>Freecell</h2>
                     <div class="description freecell">
                         <div class="layout"></div>
-                        <blockquote>Freecell is a modern solitaire game, developed for computer play. It is one of the most skillful solitaires; if you stratgize by opening as many spaces as possible early on and build long runs, you can win practically every game.</blockquote>
+                        <blockquote>Freecell is a modern solitaire game, developed for computer play. It is one of the most skillful solitaires; if you strategize by opening as many spaces as possible early on and build long runs, you can win practically every game.</blockquote>
                         <h3>Foundation:</h3>
                         <p>Built in series from Ace to King, in suit.</p>
                         <h3>Play:</h3>
@@ -187,7 +218,7 @@ requirejs.config({
                         <h3>Foundation:</h3>
                         <p>Built in series and suit up to the pile's hour position on a clock. Jacks through Kings are 11s through 13s.</p>
                         <h3>Play:</h3>
-                        <p>The top card from the tableau may be played on the foundation or another tableau pile. The tableu is built downwards, regardless of suit.</p>
+                        <p>The top card from the tableau may be played on the foundation or another tableau pile. The tableau is built downwards, regardless of suit.</p>
                         <button class="choose">Play Grandfather's Clock</button>
                     </div>
                 </li>
@@ -201,7 +232,7 @@ requirejs.config({
                         <h3>Tableau:</h3>
                         <p>The top card of each pile may be played on another tableau pile or on the foundation. Tableau piles are built downwards by alternating color. Partial or complete face up runs may be moved. Free spaces may only be filled by a King or a pile starting with a King.</p>
                         <h3>Wastepile</h3>
-                        <p>Click the stock to transfer 3 cards to the wastepile. The top card on the wastepile may be played on the foundation or tableau. When the stock is deplected, click it to start a new stock with the remaining waste cards.</p>
+                        <p>Click the stock to transfer 3 cards to the wastepile. The top card on the wastepile may be played on the foundation or tableau. When the stock is depleted, click it to start a new stock with the remaining waste cards.</p>
                         <button class="choose">Play Klondike</button>
                     </div>
                 </li>
@@ -239,7 +270,7 @@ requirejs.config({
                         <h3>How to win:</h3>
                         <p>Discard all cards.</p>
                         <h3>Play:</h3>
-                        <p>Any pair of uncovered cards totaling 13 maybe be discarded.</p>
+                        <p>Any pair of uncovered cards totaling 13 may be discarded.</p>
                         <h3>Wastepile</h3>
                         <p>Click the stock to move the top card to the waste and uncover the next card in the stock. The top cards of both the waste and the stock are playable.</p>
                         <button class="choose">Play Pyramid</button>
@@ -261,7 +292,7 @@ requirejs.config({
                     <h2>Scorpion</h2>
                     <div class="description scorpion">
                         <div class="layout"></div>
-                        <blockquote>Scorpion is a luck based solitaire game who's goal, like Spider, is to build single-suited runs. But unlike Spider, there's very little room for skill and a winnable deal is rare.</blockquote>
+                        <blockquote>Scorpion is a luck-based solitaire game whose goal, like Spider, is to build single-suited runs. But unlike Spider, there's very little room for skill and a winnable deal is rare.</blockquote>
                         <h3>Foundation:</h3>
                         <p>Automatically filled when an in suit run from King to Ace is completed</p>
                         <h3>Play:</h3>
@@ -279,7 +310,7 @@ requirejs.config({
                         <h3>Foundation:</h3>
                         <p>Automatically filled when an in suit run from King to Ace is completed</p>
                         <h3>Play:</h3>
-                        <p>Tableau piles are built downwards, regardless of suit. The top card card of any tableau pile can be played on another tableau pile or empty space. Partial or complete in-suit runs may also be played.</p>
+                        <p>Tableau piles are built downwards, regardless of suit. The top card of any tableau pile can be played on another tableau pile or empty space. Partial or complete in-suit runs may also be played.</p>
                         <h3>Deck:</h3>
                         <p>If there are no empty tableau spaces, click the deck to deal one card to each tableau pile.</p>
                         <button class="choose">Play Spider</button>
@@ -289,11 +320,11 @@ requirejs.config({
                     <h2>Spider (1 Suit)</h2>
                     <div class="description spider1s">
                         <div class="layout"></div>
-                        <blockquote>This version is the easy Spider. One suite Spider is great for learning the basic strategies of quickly uncovering cards and opening free spaces. It also perfect on its own as a slow, relaxing Solitaire game.</blockquote>
+                        <blockquote>This version is the easy Spider. One-suit Spider is great for learning the basic strategies of quickly uncovering cards and opening free spaces. It is also perfect on its own as a slow, relaxing Solitaire game.</blockquote>
                         <h3>Foundation:</h3>
                         <p>Automatically filled when an in suit run from King to Ace is completed</p>
                         <h3>Play:</h3>
-                        <p>Tableau piles are built downwards, regardless of suit. The top card card of any tableau pile can be played on another tableau pile or empty space. Partial or complete in-suit runs may also be played.</p>
+                        <p>Tableau piles are built downwards, regardless of suit. The top card of any tableau pile can be played on another tableau pile or empty space. Partial or complete in-suit runs may also be played.</p>
                         <h3>Deck:</h3>
                         <p>If there are no empty tableau spaces, click the deck to deal one card to each tableau pile.</p>
                         <button class="choose">Play Spider 1 Suit</button>
@@ -303,11 +334,11 @@ requirejs.config({
                     <h2>Spider (2 Suit)</h2>
                     <div class="description spider2s">
                         <div class="layout"></div>
-                        <blockquote>This is the medium difficulty Spider. While not a breeze like the one suit Spider, nearly every hand is still winnable, and its by far one of the most skill-dependant solitaire games.</blockquote>
+                        <blockquote>This is the medium difficulty Spider. While not a breeze like the one-suit Spider, nearly every hand is still winnable, and it is by far one of the most skill-dependent solitaire games.</blockquote>
                         <h3>Foundation:</h3>
                         <p>Automatically filled when an in suit run from King to Ace is completed</p>
                         <h3>Play:</h3>
-                        <p>Tableau piles are built downwards, regardless of suit. The top card card of any tableau pile can be played on another tableau pile or empty space. Partial or complete in-suit runs may also be played.</p>
+                        <p>Tableau piles are built downwards, regardless of suit. The top card of any tableau pile can be played on another tableau pile or empty space. Partial or complete in-suit runs may also be played.</p>
                         <h3>Deck:</h3>
                         <p>If there are no empty tableau spaces, click the deck to deal one card to each tableau pile.</p>
                         <button class="choose">Play Spider 2 Suit</button>
@@ -321,7 +352,7 @@ requirejs.config({
                         <h3>Foundation:</h3>
                         <p>Automatically filled when an in suit run from King to Ace is completed</p>
                         <h3>Play:</h3>
-                        <p>Tableau piles are built downwards, regardless of suit. The top card card of any tableau pile can be played on another tableau pile or empty space. Partial or complete in-suit runs may also be played.</p>
+                        <p>Tableau piles are built downwards, regardless of suit. The top card of any tableau pile can be played on another tableau pile or empty space. Partial or complete in-suit runs may also be played.</p>
                         <h3>Deck:</h3>
                         <p>If there are no empty tableau spaces, click the deck to deal one card to each tableau pile.</p>
                         <button class="choose">Play Spiderette</button>
@@ -349,7 +380,7 @@ requirejs.config({
                         <h3>Foundation:</h3>
                         <p>Automatically filled when an in suit run from King to Ace is completed</p>
                         <h3>Play:</h3>
-                        <p>Tableau piles are built downwards, regardless of suit. The top card card of any tableau pile can be played on another tableau pile or empty space. Partial or complete in-suit runs may also be played.</p>
+                        <p>Tableau piles are built downwards, regardless of suit. The top card of any tableau pile can be played on another tableau pile or empty space. Partial or complete in-suit runs may also be played.</p>
                         <h3>Deck:</h3>
                         <p>If there are no empty tableau spaces, click the deck to deal one card to each tableau pile.</p>
                         <button class="choose">Play Will O' The Wisp</button>

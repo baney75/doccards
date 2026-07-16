@@ -58,6 +58,32 @@
       this.renderFavorites();
       this.updateDealNumber();
       this.showCoachIfNeeded();
+      this.showIosInstallHintIfNeeded();
+    },
+
+    showIosInstallHintIfNeeded: function () {
+      try {
+        if (localStorage.getItem("doccards_ios_install_seen") === "1") return;
+      } catch (e) { return; }
+      var isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      var standalone = window.navigator.standalone === true ||
+        window.matchMedia("(display-mode: standalone)").matches;
+      if (!isIos || standalone) return;
+      var tip = document.createElement("div");
+      tip.id = "dc-ios-install";
+      tip.className = "pwa-ios-prompt";
+      tip.innerHTML =
+        '<div class="pwa-ios-card">' +
+        '<p><strong>Install Doc\'s Cards</strong></p>' +
+        '<p>Tap Share <span aria-hidden="true">\u2399</span> then <strong>Add to Home Screen</strong> for fullscreen play offline.</p>' +
+        '<button type="button" class="doccards-btn" id="dc-ios-install-ok">Got it</button>' +
+        "</div>";
+      document.body.appendChild(tip);
+      document.getElementById("dc-ios-install-ok").addEventListener("click", function () {
+        try { localStorage.setItem("doccards_ios_install_seen", "1"); } catch (e) {}
+        tip.remove();
+      });
     },
 
     hookEvents: function () {
@@ -120,7 +146,8 @@
 
       if ("serviceWorker" in navigator) {
         navigator.serviceWorker.addEventListener("controllerchange", function () {
-          self._showToast("Updated! Refresh to get the latest version.");
+          // index.html also reloads; toast as a soft fallback for browsers that don't.
+          self._showToast("Updating Doc's Cards…");
         });
         navigator.serviceWorker.ready.then(function (reg) {
           reg.addEventListener("updatefound", function () {
@@ -128,7 +155,10 @@
             if (!newWorker) return;
             newWorker.addEventListener("statechange", function () {
               if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                self._showToast("Update available — refresh to update.");
+                self._showToast("Update ready — refreshing…");
+                if (newWorker.postMessage) {
+                  newWorker.postMessage({ type: "SKIP_WAITING" });
+                }
               }
             });
           });
@@ -187,13 +217,7 @@
         "</div></div>";
       document.body.appendChild(overlay);
       this._confirmOverlay = overlay;
-      var self = this;
-      document.getElementById("dc-confirm-cancel").addEventListener("click", function () {
-        self._hideConfirm();
-      });
-      overlay.addEventListener("click", function (e) {
-        if (e.target === overlay) self._hideConfirm();
-      });
+      // Click handlers are attached per-open in confirmAction (avoids leaked listeners).
     },
 
     confirmAction: function (message, onConfirm) {
@@ -205,13 +229,28 @@
       document.getElementById("dc-confirm-body").textContent = message;
       overlay.className = "rules-overlay";
       var ok = document.getElementById("dc-confirm-ok");
+      var cancel = document.getElementById("dc-confirm-cancel");
       var self = this;
-      var handler = function () {
-        ok.removeEventListener("click", handler);
+      var cleanup = function () {
+        ok.removeEventListener("click", onOk);
+        cancel.removeEventListener("click", onCancel);
+        overlay.removeEventListener("click", onBackdrop);
+      };
+      var onOk = function () {
+        cleanup();
         self._hideConfirm();
         onConfirm();
       };
-      ok.addEventListener("click", handler);
+      var onCancel = function () {
+        cleanup();
+        self._hideConfirm();
+      };
+      var onBackdrop = function (e) {
+        if (e.target === overlay) onCancel();
+      };
+      ok.addEventListener("click", onOk);
+      cancel.addEventListener("click", onCancel);
+      overlay.addEventListener("click", onBackdrop);
     },
 
     _hideConfirm: function () {
@@ -271,7 +310,22 @@
       btn.setAttribute("aria-label", "Toggle large cards and text for easier reading");
       btn.addEventListener("click", this.toggleBigCards.bind(this));
       document.body.appendChild(btn);
-      if (localStorage.getItem(this.BIG_CARDS_KEY) === "true") {
+      var preferBig = false;
+      try {
+        preferBig = localStorage.getItem(this.BIG_CARDS_KEY) === "true";
+        // iPad / large tablets: default to Big Cards for Grandpa-friendly play.
+        if (localStorage.getItem(this.BIG_CARDS_KEY) === null) {
+          var isIpad = (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) ||
+            /iPad/.test(navigator.userAgent) ||
+            (Math.min(window.innerWidth, window.innerHeight) >= 700 &&
+              window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+          if (isIpad) {
+            preferBig = true;
+            localStorage.setItem(this.BIG_CARDS_KEY, "true");
+          }
+        }
+      } catch (e) {}
+      if (preferBig) {
         document.body.classList.add("big-cards");
         btn.classList.add("active");
       }
@@ -313,12 +367,16 @@
       btn.setAttribute("aria-label", "Sound on");
       btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">\uD83D\uDD0A</span><span class="fab-label">Sound</span>';
       btn.addEventListener("click", function () {
-        if (typeof DCSound !== "undefined") {
-          DCSound.enabled(!DCSound.enabled());
-          var on = DCSound.enabled();
-          btn.querySelector(".fab-glyph").textContent = on ? "\uD83D\uDD0A" : "\uD83D\uDD07";
-          btn.setAttribute("aria-label", on ? "Sound on" : "Sound off");
+        if (typeof DCSound === "undefined") return;
+        var next = !DCSound.enabled();
+        DCSound.enabled(next);
+        if (next && DCSound.unlock) {
+          DCSound.unlock();
         }
+        var on = DCSound.enabled();
+        btn.querySelector(".fab-glyph").textContent = on ? "\uD83D\uDD0A" : "\uD83D\uDD07";
+        btn.setAttribute("aria-label", on ? "Sound on" : "Sound off");
+        if (on) DCUI._showToast("Sound on");
       });
       document.body.appendChild(btn);
     },
