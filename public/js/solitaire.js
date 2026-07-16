@@ -502,13 +502,40 @@ define([], function () {
 
                 init: function () {
                     const cancel = Solitaire.preventDefault;
+                    const selectableSelector =
+                        "#rules-overlay, #dc-confirm, .rules-content, #descriptions .description, #game-chooser .description, input, textarea, [contenteditable='true']";
 
-                    // Prevent blue drag-select rectangles while playing (iPad/desktop).
-                    Y.on("selectstart", cancel, document);
+                    function isSelectableTarget(target) {
+                        if (!target) return false;
+                        var el = target._node || target;
+                        if (!el) return false;
+                        if (el.closest && el.closest(selectableSelector)) {
+                            return true;
+                        }
+                        if (target.ancestor && target.ancestor(selectableSelector)) {
+                            return true;
+                        }
+                        return false;
+                    }
+
+                    // Prevent blue drag-select on the felt; allow it in dialogs/rules.
+                    Y.on(
+                        "selectstart",
+                        function (e) {
+                            if (isSelectableTarget(e.target)) {
+                                return;
+                            }
+                            cancel(e);
+                        },
+                        document,
+                    );
                     Y.on(
                         "dragstart",
                         function (e) {
                             const t = e.target;
+                            if (isSelectableTarget(t)) {
+                                return;
+                            }
                             if (
                                 t &&
                                 (t.hasClass("card") ||
@@ -524,6 +551,9 @@ define([], function () {
                         "contextmenu",
                         function (e) {
                             const target = e.target;
+                            if (isSelectableTarget(target)) {
+                                return;
+                            }
                             if (
                                 target.hasClass("stack") ||
                                 target.hasClass("card")
@@ -533,11 +563,14 @@ define([], function () {
                         },
                         document,
                     );
-                    // Clear any existing browser selection when interacting with the table.
+                    // Clear browser selection when interacting with the table (not dialogs).
                     if (typeof document.addEventListener === "function") {
                         document.addEventListener(
                             "pointerdown",
-                            function () {
+                            function (ev) {
+                                if (isSelectableTarget(ev.target)) {
+                                    return;
+                                }
                                 const sel =
                                     window.getSelection && window.getSelection();
                                 if (sel && sel.rangeCount && sel.removeAllRanges) {
