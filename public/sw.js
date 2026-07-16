@@ -1,4 +1,4 @@
-var CACHE_NAME = 'doccards-v15';
+var CACHE_NAME = 'doccards-v16';
 // Warm sharp decks first; skip tiny 61 (too soft on retina).
 var CARD_SIZES = [95, 122, 244];
 var SUITS = ['s', 'h', 'c', 'd'];
@@ -14,6 +14,30 @@ var BASE = (function () {
 function asset(path) {
   if (path.charAt(0) !== '/') path = '/' + path;
   return BASE + path;
+}
+
+function cachePut(cache, key, response) {
+  // Never let cache writes reject the fetch handler.
+  try {
+    return cache.put(key, response).catch(function () { return false; });
+  } catch (e) {
+    return Promise.resolve(false);
+  }
+}
+
+function stashCopy(cacheKey, resp) {
+  // CRITICAL: clone synchronously BEFORE any await. If clone runs inside
+  // caches.open().then(), Safari/Chrome may have already locked/consumed the body.
+  if (!resp || !resp.ok) return;
+  var copy;
+  try {
+    copy = resp.clone();
+  } catch (e) {
+    return;
+  }
+  caches.open(CACHE_NAME).then(function (c) {
+    return cachePut(c, cacheKey, copy);
+  }).catch(function () {});
 }
 
 // Core shell — install completes quickly so iOS/Android get a working SW immediately.
@@ -80,8 +104,7 @@ var LAYOUT_ICONS = [
 function cacheFile(cache, url) {
   return fetch(url).then(function (r) {
     if (r.ok) {
-      cache.put(url, r);
-      return true;
+      return cachePut(cache, url, r).then(function () { return true; });
     }
     return false;
   }).catch(function () {
@@ -107,7 +130,6 @@ function warmCardsInBackground() {
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      // Activate ASAP after core shell — do NOT wait on hundreds of card PNGs.
       return cache.addAll(PRECACHE_URLS).then(function () {
         self.skipWaiting();
         warmCardsInBackground();
@@ -143,12 +165,7 @@ self.addEventListener('fetch', function (event) {
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req).then(function (resp) {
-        if (resp.ok) {
-          var clone = resp.clone();
-          caches.open(CACHE_NAME).then(function (c) {
-            c.put(asset('/index.html'), clone);
-          });
-        }
+        stashCopy(asset('/index.html'), resp);
         return resp;
       }).catch(function () {
         return caches.match(asset('/index.html')).then(function (r) {
@@ -162,18 +179,13 @@ self.addEventListener('fetch', function (event) {
   var isJS = /\.js$/i.test(url.pathname);
   var isCSS = /\.css$/i.test(url.pathname);
   var isImage = /\.(png|jpg|webp|gif|svg|ico|woff2?)$/i.test(url.pathname);
-  // Use full URL string matching precache keys (BASE + path).
   var cacheKey = url.pathname;
 
   // App shell scripts/CSS: network-first so updates land quickly on iOS PWAs.
   if (isJS || isCSS) {
     event.respondWith(
       fetch(req).then(function (resp) {
-        if (resp.ok) {
-          caches.open(CACHE_NAME).then(function (c) {
-            c.put(cacheKey, resp.clone());
-          });
-        }
+        stashCopy(cacheKey, resp);
         return resp;
       }).catch(function () {
         return caches.match(cacheKey).then(function (cached) {
@@ -191,17 +203,14 @@ self.addEventListener('fetch', function (event) {
   event.respondWith(
     caches.match(cacheKey).then(function (cached) {
       var network = fetch(req).then(function (resp) {
-        if (resp && resp.ok) {
-          caches.open(CACHE_NAME).then(function (c) {
-            c.put(cacheKey, resp.clone());
-          });
-        }
+        stashCopy(cacheKey, resp);
         return resp;
       }).catch(function () {
         return null;
       });
       if (cached) {
-        network.catch(function () {});
+        // Refresh in background; never fail the cached response.
+        network.then(function () {}).catch(function () {});
         return cached;
       }
       return network.then(function (resp) {

@@ -88,7 +88,8 @@
 
     hookEvents: function () {
       var self = this;
-      if (this._eventsBound) return;
+      if (this._eventsBound || this._eventsBinding) return;
+      this._eventsBinding = true;
 
       var bind = function () {
         var Y = root.Y;
@@ -124,6 +125,7 @@
           self.updateDealNumber();
           setTimeout(function () { self.renderFavorites(); }, 300);
           self._eventsBound = true;
+          self._eventsBinding = false;
           Logger.info("dcui_events_bound");
           return true;
         } catch (e) {
@@ -137,10 +139,14 @@
       var retries = 0;
       var maxRetries = 40;
       var poll = function () {
+        if (self._eventsBound) return;
         if (bind()) return;
         retries++;
         if (retries < maxRetries) setTimeout(poll, 250);
-        else Logger.warn("dcui_hook_timeout");
+        else {
+          self._eventsBinding = false;
+          Logger.warn("dcui_hook_timeout");
+        }
       };
       setTimeout(poll, 200);
 

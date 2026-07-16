@@ -2146,9 +2146,14 @@ YUI.add(
 
                 turnOver: function () {
                     const deck = this.deck.stacks[0];
-                    const that = this;
 
                     if (hasFreeTableaus()) {
+                        if (typeof DCUI !== "undefined" && DCUI._showToast) {
+                            DCUI._showToast("Fill empty columns before dealing");
+                        }
+                        if (typeof DCSound !== "undefined") {
+                            DCSound.error();
+                        }
                         return;
                     }
 
@@ -2159,7 +2164,7 @@ YUI.add(
                             card.faceUp()
                                 .moveTo(stack)
                                 .after(function () {
-                                    that.stack.updateCardsPosition();
+                                    stack.updateCardsPosition();
                                 });
                         }
                     }, "tableau");

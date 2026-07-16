@@ -72,6 +72,9 @@ requirejs.config({
                 setTimeout(function () {
                     require(['./solver-freecell'], function () {
                         Logger.info('solver_freecell_loaded');
+                        if (window.Y && typeof window.Y.use === 'function') {
+                            window.Y.use('solver-freecell');
+                        }
                     }, function (err) {
                         Logger.warn('solver_freecell_deferred_failed', { error: String(err && err.message || err) });
                     });
@@ -85,8 +88,14 @@ requirejs.config({
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', function () {
             var refreshing = false;
+            var hadController = !!navigator.serviceWorker.controller;
             navigator.serviceWorker.addEventListener('controllerchange', function () {
                 if (refreshing) return;
+                // First install: SW takes control — do not reload (causes double boot).
+                if (!hadController) {
+                    hadController = true;
+                    return;
+                }
                 refreshing = true;
                 // Auto-apply updates in installed PWAs (critical on iOS standalone).
                 window.location.reload();

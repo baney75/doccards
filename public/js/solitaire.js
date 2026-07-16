@@ -352,21 +352,12 @@ define([], function () {
 
                 createEvents: function () {
                     const container = Y.one(Solitaire.selector);
-                    if (false) {
-                        container.delegate("dblclick", Game.autoPlay, ".card");
-                        container.delegate(
-                            "contextmenu",
-                            Game.autoPlay,
-                            ".card",
-                        );
-
-                        container.delegate("click", Game.Events.click, ".card");
-                        container.delegate(
-                            "touchend",
-                            Game.Events.click,
-                            ".card",
-                        );
-                    }
+                    // Card taps must call turnOver (deck deal / flip). Drag alone
+                    // cannot — createProxyStack returns null for face-down cards.
+                    container.delegate("dblclick", Game.autoPlay, ".card");
+                    container.delegate("contextmenu", Game.autoPlay, ".card");
+                    // click only — also binding touchend double-fires deal on iOS/Android.
+                    container.delegate("click", Game.Events.click, ".card");
 
                     Y.on("solitaire|endTurn", Game.Events.endTurn);
                     Y.on("solitaire|undo", Game.Events.undo);
@@ -598,20 +589,33 @@ define([], function () {
             });
 
             Y.Solitaire.Events = {
-                /*
-                click: function(e) {
-                    var card = e.target.getData("target");
+                click: function (e) {
+                    var target = e.target;
+                    var card = target && target.getData ? target.getData("target") : null;
+                    if (!card && target && target.ancestor) {
+                        var host = target.ancestor(".card");
+                        if (host) card = host.getData("target");
+                    }
+                    if (!card) return;
 
                     if (card.dragging) {
                         return;
                     }
+
+                    // Guard against synthetic duplicate clicks.
+                    var now = Date.now();
+                    if (Solitaire._lastCardClickAt && now - Solitaire._lastCardClickAt < 350) {
+                        e.preventDefault();
+                        return;
+                    }
+                    Solitaire._lastCardClickAt = now;
 
                     card.dragging = false;
                     card.turnOver(e);
                     Solitaire.moves.reverse();
                     Solitaire.endTurn();
                     e.preventDefault();
-                },*/
+                },
 
                 clickEmptyDeck: function () {
                     Game.redeal();
@@ -660,16 +664,22 @@ define([], function () {
                 dragMiss: function () {
                     const card = this.getCard();
 
+                    Game.unanimated(function () {
+                        card.updatePosition();
+                    });
+
+                    // Face-down deck taps are handled by click → turnOver.
+                    // Do not treat them as illegal drops (error sound / nudge).
+                    if (card && card.stack && card.stack.field === "deck") {
+                        return;
+                    }
+
                     if (typeof DCSound !== "undefined") {
                         DCSound.error();
                     }
                     if (typeof DCUI !== "undefined" && DCUI.invalidMove) {
                         DCUI.invalidMove();
                     }
-
-                    Game.unanimated(function () {
-                        card.updatePosition();
-                    });
                 },
 
                 dragEnd: function () {

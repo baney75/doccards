@@ -671,9 +671,8 @@ define(["./solitaire"], function (solitaire) {
         };
 
         yui.use.apply(yui, modules().concat(main));
-        window.setTimeout(function () {
-            yui.use.apply(yui, ["solver-freecell"]);
-        }, 400);
+        // Freecell solver is registered via AMD in index.html (deferred).
+        // Do not yui.use it here — that logs "NOT loaded: solver-freecell".
     })();
 
     return {
