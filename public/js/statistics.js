@@ -133,17 +133,41 @@ define(["./solitaire"], function (solitaire) {
                         localStorage[Solitaire.game.name() + "record"],
                     );
                 let output = "<div id='win_display'>";
-                const streakCount = _.last(stats.streaks()).length;
+                const streaks = stats.streaks();
+                const lastStreak = streaks.length ? streaks[streaks.length - 1] : [];
+                const streakCount = lastStreak.length;
                 const winCount = stats.wins().length;
-                const loseCount = stats.loses().length;
 
-                output += "<div class='win-icon'>\uD83C\uDCCF</div>";
+                var moves = (typeof DCUI !== "undefined" && DCUI._moveCount) || 0;
+                var elapsed = 0;
+                if (typeof DCUI !== "undefined" && DCUI._startTime) {
+                    elapsed = Math.floor((Date.now() - DCUI._startTime) / 1000);
+                }
+                var mm = Math.floor(elapsed / 60);
+                var ss = elapsed % 60;
+                var timeLabel = mm + ":" + (ss < 10 ? "0" : "") + ss;
+                var praise =
+                    streakCount >= 5
+                        ? "On fire — " + streakCount + " in a row!"
+                        : streakCount >= 2
+                          ? "Streak building — keep it going"
+                          : moves > 0 && moves < 60
+                            ? "Sharp play"
+                            : "Beautifully done";
+
+                output += "<div class='win-icon' aria-hidden='true'></div>";
                 output += "<p class='win-title'>You Win!</p>";
-                output += "<p class='win-subtitle'>" + nameMap[Solitaire.game.name()] + "</p>";
+                output += "<p class='win-subtitle'>" + (nameMap[Solitaire.game.name()] || "Solitaire") + "</p>";
+                output += "<p class='win-praise'>" + praise + "</p>";
                 output += "<div class='win-stats'>";
                 output += "<div class='stat'><span class='stat-value'>" + streakCount + "</span><span class='stat-label'>Streak</span></div>";
                 output += "<div class='stat'><span class='stat-value'>" + winCount + "</span><span class='stat-label'>Wins</span></div>";
-                output += "<div class='stat'><span class='stat-value'>" + loseCount + "</span><span class='stat-label'>Losses</span></div>";
+                if (moves > 0) {
+                    output += "<div class='stat'><span class='stat-value'>" + moves + "</span><span class='stat-label'>Moves</span></div>";
+                }
+                if (elapsed > 0) {
+                    output += "<div class='stat'><span class='stat-value'>" + timeLabel + "</span><span class='stat-label'>Time</span></div>";
+                }
                 output += "</div>";
                 output += '<div class="replay_options"><button class="new_deal doccards-btn">New Deal</button><button class="choose_game doccards-btn doccards-btn-secondary">Choose Game</button></div>';
 
@@ -183,6 +207,9 @@ define(["./solitaire"], function (solitaire) {
 
             function Record(raw) {
                 function parse() {
+                    if (!raw || typeof raw !== "string") {
+                        return [];
+                    }
                     const entries = raw.split("|");
 
                     entries.splice(entries.length - 1);

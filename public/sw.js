@@ -1,9 +1,9 @@
-var CACHE_NAME = 'doccards-v13';
-var CARD_SIZES = [61, 79, 95, 122];
+var CACHE_NAME = 'doccards-v21';
+// Include every size pickThemeSize() may choose (79 on small non-retina).
+var CARD_SIZES = [79, 95, 122, 244];
 var SUITS = ['s', 'h', 'c', 'd'];
 var RANKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
-// Project Pages live at /doccards/; local serve may be at /.
 var BASE = (function () {
   var path = self.location.pathname || '/';
   var idx = path.lastIndexOf('/');
@@ -16,6 +16,31 @@ function asset(path) {
   return BASE + path;
 }
 
+function cachePut(cache, key, response) {
+  // Never let cache writes reject the fetch handler.
+  try {
+    return cache.put(key, response).catch(function () { return false; });
+  } catch (e) {
+    return Promise.resolve(false);
+  }
+}
+
+function stashCopy(cacheKey, resp) {
+  // CRITICAL: clone synchronously BEFORE any await. If clone runs inside
+  // caches.open().then(), Safari/Chrome may have already locked/consumed the body.
+  if (!resp || !resp.ok) return;
+  var copy;
+  try {
+    copy = resp.clone();
+  } catch (e) {
+    return;
+  }
+  caches.open(CACHE_NAME).then(function (c) {
+    return cachePut(c, cacheKey, copy);
+  }).catch(function () {});
+}
+
+// Core shell — install completes quickly so iOS/Android get a working SW immediately.
 var PRECACHE_URLS = [
   asset('/'),
   asset('/index.html'),
@@ -25,13 +50,16 @@ var PRECACHE_URLS = [
   asset('/green.webp'),
   asset('/loading.gif'),
   asset('/trans.gif'),
-  asset('/x.gif'),
   asset('/favicon.svg'),
   asset('/manifest.json'),
-  asset('/apple-touch-icon-precomposed.png'),
   asset('/apple-touch-icon-180.png'),
+  asset('/apple-touch-icon-167.png'),
+  asset('/apple-touch-icon-152.png'),
+  asset('/apple-touch-icon-120.png'),
+  asset('/apple-touch-icon-precomposed.png'),
   asset('/pwa-192x192.png'),
   asset('/pwa-512x512.png'),
+  asset('/pwa-maskable-192.png'),
   asset('/pwa-maskable-512.png'),
   asset('/brand-mark.webp'),
   asset('/brand-mark.png'),
@@ -46,24 +74,17 @@ var PRECACHE_URLS = [
   asset('/js/yui-breakout.js'),
   asset('/js/solitaire.js'),
   asset('/js/application.js'),
-  asset('/js/iphone.js'),
   asset('/js/auto-stack-clear.js'),
   asset('/js/auto-turnover.js'),
   asset('/js/statistics.js'),
   asset('/js/autoplay.js'),
   asset('/js/freecell.js'),
-  asset('/js/solver-freecell.js'),
   asset('/js/doccards-games.js'),
   asset('/js/doccards-storage.js'),
   asset('/js/doccards-logger.js'),
   asset('/js/doccards-sound.js'),
   asset('/js/doccards-ui.js'),
-  asset('/js/big-integer.js'),
-  asset('/js/flatted.js'),
-  asset('/js/libfreecell-solver.js'),
-  asset('/js/libfreecell-solver.wasm'),
-  asset('/js/libfreecell-solver.js.mem'),
-  asset('/js/solver-freecell-worker.js')
+  asset('/js/doccards-fx.js')
 ];
 
 function cardImagesForSize(size) {
@@ -89,8 +110,7 @@ var LAYOUT_ICONS = [
 function cacheFile(cache, url) {
   return fetch(url).then(function (r) {
     if (r.ok) {
-      cache.put(url, r);
-      return true;
+      return cachePut(cache, url, r).then(function () { return true; });
     }
     return false;
   }).catch(function () {
@@ -98,22 +118,36 @@ function cacheFile(cache, url) {
   });
 }
 
+function warmCardsInBackground() {
+  caches.open(CACHE_NAME).then(function (cache) {
+    var bg = [];
+    CARD_SIZES.forEach(function (size) {
+      cardImagesForSize(size).forEach(function (url) {
+        bg.push(cacheFile(cache, url));
+      });
+    });
+    LAYOUT_ICONS.forEach(function (url) {
+      bg.push(cacheFile(cache, url));
+    });
+    return Promise.allSettled(bg);
+  }).catch(function () {});
+}
+
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
       return cache.addAll(PRECACHE_URLS).then(function () {
-        var bgCache = [];
-        CARD_SIZES.forEach(function (size) {
-          cardImagesForSize(size).forEach(function (url) {
-            bgCache.push(cacheFile(cache, url));
-          });
+        self.skipWaiting();
+        // Warm default sharp deck before install finishes so offline
+        // opens are not empty placeholders; other sizes continue in background.
+        var priority = cardImagesForSize(122);
+        return Promise.allSettled(
+          priority.map(function (url) {
+            return cacheFile(cache, url);
+          })
+        ).then(function () {
+          warmCardsInBackground();
         });
-        LAYOUT_ICONS.forEach(function (url) {
-          bgCache.push(cacheFile(cache, url));
-        });
-        return Promise.allSettled(bgCache);
-      }).then(function () {
-        return self.skipWaiting();
       });
     })
   );
@@ -130,6 +164,7 @@ self.addEventListener('activate', function (event) {
         })
       );
     }).then(function () {
+      warmCardsInBackground();
       return self.clients.claim();
     })
   );
@@ -145,12 +180,7 @@ self.addEventListener('fetch', function (event) {
   if (req.mode === 'navigate') {
     event.respondWith(
       fetch(req).then(function (resp) {
-        if (resp.ok) {
-          var clone = resp.clone();
-          caches.open(CACHE_NAME).then(function (c) {
-            c.put(req, clone);
-          });
-        }
+        stashCopy(asset('/index.html'), resp);
         return resp;
       }).catch(function () {
         return caches.match(asset('/index.html')).then(function (r) {
@@ -161,59 +191,46 @@ self.addEventListener('fetch', function (event) {
     return;
   }
 
-  var isJS = url.pathname.match(/\.js$/);
-  var isImage = url.pathname.match(/\.(png|jpg|webp|gif|svg|ico|woff2?)$/);
-  var isCSS = url.pathname.match(/\.css$/);
+  var isJS = /\.js$/i.test(url.pathname);
+  var isCSS = /\.css$/i.test(url.pathname);
+  var isImage = /\.(png|jpg|webp|gif|svg|ico|woff2?)$/i.test(url.pathname);
   var cacheKey = url.pathname;
 
-  if (isJS) {
+  // App shell scripts/CSS: network-first so updates land quickly on iOS PWAs.
+  if (isJS || isCSS) {
     event.respondWith(
       fetch(req).then(function (resp) {
-        if (resp.ok) {
-          caches.open(CACHE_NAME).then(function (c) {
-            c.put(cacheKey, resp.clone());
-          });
-        }
+        stashCopy(cacheKey, resp);
         return resp;
       }).catch(function () {
         return caches.match(cacheKey).then(function (cached) {
-          return cached || new Response('Offline', { status: 503 });
+          return cached || new Response(isCSS ? '/* offline */' : 'Offline', {
+            status: 503,
+            headers: { 'Content-Type': isCSS ? 'text/css' : 'text/plain' }
+          });
         });
       })
     );
     return;
   }
 
+  // Images/fonts: cache-first with background refresh.
   event.respondWith(
     caches.match(cacheKey).then(function (cached) {
-      if (cached) {
-        fetch(req).then(function (netResp) {
-          if (netResp && netResp.ok) {
-            caches.open(CACHE_NAME).then(function (c) {
-              c.put(req, netResp);
-            });
-          }
-        }).catch(function () {});
-        return cached;
-      }
-      return fetch(req).then(function (resp) {
-        if (resp.ok) {
-          var clone = resp.clone();
-          caches.open(CACHE_NAME).then(function (c) {
-            c.put(cacheKey, clone);
-          });
-        }
+      var network = fetch(req).then(function (resp) {
+        stashCopy(cacheKey, resp);
         return resp;
       }).catch(function () {
-        if (isImage) {
-          return caches.match(asset('/trans.gif'));
-        }
-        if (isCSS) {
-          return new Response('/* offline */', {
-            status: 503,
-            headers: { 'Content-Type': 'text/css' }
-          });
-        }
+        return null;
+      });
+      if (cached) {
+        // Refresh in background; never fail the cached response.
+        network.then(function () {}).catch(function () {});
+        return cached;
+      }
+      return network.then(function (resp) {
+        if (resp) return resp;
+        if (isImage) return caches.match(asset('/trans.gif'));
         return new Response('Offline', { status: 503 });
       });
     })
@@ -223,5 +240,8 @@ self.addEventListener('fetch', function (event) {
 self.addEventListener('message', function (event) {
   if (event.data && event.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
+  }
+  if (event.data && event.data.type === 'WARM_CARDS') {
+    warmCardsInBackground();
   }
 });

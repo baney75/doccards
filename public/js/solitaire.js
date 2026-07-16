@@ -352,21 +352,12 @@ define([], function () {
 
                 createEvents: function () {
                     const container = Y.one(Solitaire.selector);
-                    if (false) {
-                        container.delegate("dblclick", Game.autoPlay, ".card");
-                        container.delegate(
-                            "contextmenu",
-                            Game.autoPlay,
-                            ".card",
-                        );
-
-                        container.delegate("click", Game.Events.click, ".card");
-                        container.delegate(
-                            "touchend",
-                            Game.Events.click,
-                            ".card",
-                        );
-                    }
+                    // Card taps must call turnOver (deck deal / flip). Drag alone
+                    // cannot — createProxyStack returns null for face-down cards.
+                    container.delegate("dblclick", Game.autoPlay, ".card");
+                    container.delegate("contextmenu", Game.autoPlay, ".card");
+                    // click only — also binding touchend double-fires deal on iOS/Android.
+                    container.delegate("click", Game.Events.click, ".card");
 
                     Y.on("solitaire|endTurn", Game.Events.endTurn);
                     Y.on("solitaire|undo", Game.Events.undo);
@@ -377,7 +368,8 @@ define([], function () {
                         dragConfig: {
                             dragMode: "intersect",
                             groups: ["open"],
-                            clickPixelThresh: 0,
+                            clickPixelThresh: 14,
+                            clickTimeThresh: 220,
                         },
                         container: Solitaire.selector,
                         nodes: ".card",
@@ -497,31 +489,96 @@ define([], function () {
                     Card.scale = scale;
 
                     for (const prop in base) {
-                        if (base.hasOwnProperty(prop)) {
-                            Card[prop] = base[prop] * scale;
+                        if (!base.hasOwnProperty(prop)) {
+                            continue;
                         }
+                        // Never multiply non-numeric fields (e.g. theme: "dondorf/122")
+                        if (typeof base[prop] !== "number") {
+                            Card[prop] = base[prop];
+                            continue;
+                        }
+                        Card[prop] = base[prop] * scale;
                     }
                 },
 
                 init: function () {
                     const cancel = Solitaire.preventDefault;
+                    const selectableSelector =
+                        "#rules-overlay, #dc-confirm, .rules-content, #descriptions .description, #game-chooser .description, input, textarea, [contenteditable='true']";
 
-                    if (false) {
-                        Y.on("selectstart", cancel, document);
-                        Y.on("mousedown", cancel, document.body);
-                        Y.on(
-                            "contextmenu",
-                            function (e) {
-                                const target = e.target;
+                    function isSelectableTarget(target) {
+                        if (!target) return false;
+                        var el = target._node || target;
+                        if (!el) return false;
+                        if (el.closest && el.closest(selectableSelector)) {
+                            return true;
+                        }
+                        if (target.ancestor && target.ancestor(selectableSelector)) {
+                            return true;
+                        }
+                        return false;
+                    }
 
-                                if (
-                                    target.hasClass("stack") ||
-                                    target.hasClass("card")
-                                ) {
-                                    e.preventDefault();
+                    // Prevent blue drag-select on the felt; allow it in dialogs/rules.
+                    Y.on(
+                        "selectstart",
+                        function (e) {
+                            if (isSelectableTarget(e.target)) {
+                                return;
+                            }
+                            cancel(e);
+                        },
+                        document,
+                    );
+                    Y.on(
+                        "dragstart",
+                        function (e) {
+                            const t = e.target;
+                            if (isSelectableTarget(t)) {
+                                return;
+                            }
+                            if (
+                                t &&
+                                (t.hasClass("card") ||
+                                    t.hasClass("stack") ||
+                                    t.get("tagName") === "IMG")
+                            ) {
+                                e.preventDefault();
+                            }
+                        },
+                        document,
+                    );
+                    Y.on(
+                        "contextmenu",
+                        function (e) {
+                            const target = e.target;
+                            if (isSelectableTarget(target)) {
+                                return;
+                            }
+                            if (
+                                target.hasClass("stack") ||
+                                target.hasClass("card")
+                            ) {
+                                e.preventDefault();
+                            }
+                        },
+                        document,
+                    );
+                    // Clear browser selection when interacting with the table (not dialogs).
+                    if (typeof document.addEventListener === "function") {
+                        document.addEventListener(
+                            "pointerdown",
+                            function (ev) {
+                                if (isSelectableTarget(ev.target)) {
+                                    return;
+                                }
+                                const sel =
+                                    window.getSelection && window.getSelection();
+                                if (sel && sel.rangeCount && sel.removeAllRanges) {
+                                    sel.removeAllRanges();
                                 }
                             },
-                            document,
+                            true,
                         );
                     }
 
@@ -592,20 +649,49 @@ define([], function () {
             });
 
             Y.Solitaire.Events = {
-                /*
-                click: function(e) {
-                    var card = e.target.getData("target");
+                click: function (e) {
+                    var target = e.target;
+                    var card = target && target.getData ? target.getData("target") : null;
+                    if (!card && target && target.ancestor) {
+                        var host = target.ancestor(".card");
+                        if (host) card = host.getData("target");
+                    }
+                    if (!card) return;
 
                     if (card.dragging) {
                         return;
                     }
+
+                    // Guard against synthetic duplicate clicks on the same card only.
+                    // Do NOT debounce across different cards — that blocks rapid stock deals.
+                    var now = Date.now();
+                    var cardKey =
+                        (card.suit || "") +
+                        ":" +
+                        (card.rank || "") +
+                        ":" +
+                        (card.stack && card.stack.field) +
+                        ":" +
+                        (card.stack && card.stack.cards
+                            ? card.stack.cards.indexOf(card)
+                            : -1);
+                    if (
+                        Solitaire._lastCardClickKey === cardKey &&
+                        Solitaire._lastCardClickAt &&
+                        now - Solitaire._lastCardClickAt < 280
+                    ) {
+                        e.preventDefault();
+                        return;
+                    }
+                    Solitaire._lastCardClickAt = now;
+                    Solitaire._lastCardClickKey = cardKey;
 
                     card.dragging = false;
                     card.turnOver(e);
                     Solitaire.moves.reverse();
                     Solitaire.endTurn();
                     e.preventDefault();
-                },*/
+                },
 
                 clickEmptyDeck: function () {
                     Game.redeal();
@@ -654,16 +740,26 @@ define([], function () {
                 dragMiss: function () {
                     const card = this.getCard();
 
+                    Game.unanimated(function () {
+                        card.updatePosition();
+                    });
+
+                    // Face-down deck taps are handled by click → turnOver.
+                    // Do not treat them as illegal drops (error sound / nudge).
+                    if (card && card.stack && card.stack.field === "deck") {
+                        return;
+                    }
+                    // Face-down tableau flips are also click→turnOver; don't punish wobble-drags.
+                    if (card && card.isFaceDown) {
+                        return;
+                    }
+
                     if (typeof DCSound !== "undefined") {
                         DCSound.error();
                     }
                     if (typeof DCUI !== "undefined" && DCUI.invalidMove) {
                         DCUI.invalidMove();
                     }
-
-                    Game.unanimated(function () {
-                        card.updatePosition();
-                    });
                 },
 
                 dragEnd: function () {
@@ -884,11 +980,22 @@ define([], function () {
                 },
 
                 faceUp: function (undo) {
+                    var wasDown = this.isFaceDown;
                     this.isFaceDown = false;
                     this.setRankHeight();
                     this.setImageSrc();
 
                     undo || Solitaire.pushMove({ card: this, faceDown: false });
+                    // Only chirp for deliberate user flips (turnOver), not deal/stock cascades.
+                    if (
+                        !undo &&
+                        wasDown &&
+                        Solitaire._userFlip &&
+                        typeof DCSound !== "undefined" &&
+                        DCSound.cardFlip
+                    ) {
+                        DCSound.cardFlip();
+                    }
 
                     return this;
                 },
@@ -950,7 +1057,9 @@ define([], function () {
                     if (stack.field === "deck") {
                         Game.turnOver();
                     } else if (this.isFree()) {
+                        Solitaire._userFlip = true;
                         this.faceUp();
+                        Solitaire._userFlip = false;
                     }
 
                     e.stopPropagation();
@@ -972,6 +1081,7 @@ define([], function () {
                             this.moveTo(foundation);
                             origin.updateCardsPosition();
                             origin.update();
+                            Y.fire("foundation:afterPush", foundation);
 
                             Solitaire.endTurn();
                             return true;
@@ -1001,10 +1111,12 @@ define([], function () {
                     const card = this;
 
                     const node = (this.node = Y.Node.create(
-                        "<img class='card' />",
+                        "<img class='card' draggable='false' />",
                     )
                         .setData("target", this)
                         .setAttribute("src", this.imageSrc())
+                        .setAttribute("alt", "")
+                        .setAttribute("draggable", "false")
                         .plug(Y.Plugin.Drop, {
                             useShim: false,
                         }));

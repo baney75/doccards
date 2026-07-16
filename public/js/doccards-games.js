@@ -532,30 +532,31 @@ YUI.add(
         Y.mix(
             Klondike.Waste.Stack,
             {
-                // always display only the last three cards
+                // Fan the last up-to-three waste cards cleanly (no stacked glitch).
                 setCardPosition: function (card) {
-                    const cards = this.cards,
-                        last = _.last(cards),
-                        stack = this;
+                    const cards = this.cards;
+                    const stack = this;
+                    const fan = 0.28;
+                    const list =
+                        card && cards.indexOf(card) === -1
+                            ? cards.concat([card])
+                            : cards;
+                    const start = Math.max(0, list.length - 3);
+                    let i;
+                    let c;
+                    let width;
 
-                    cards.slice(-2).forEach(function (card, i) {
-                        card.left = stack.left;
-                        card.top = stack.top;
-                    });
-
-                    if (!cards.length) {
-                        card.left = stack.left;
+                    for (i = 0; i < list.length; i++) {
+                        c = list[i];
+                        if (!c) continue;
+                        width = c.width || (card && card.width) || 0;
+                        if (i >= start) {
+                            c.left = stack.left + (i - start) * fan * width;
+                        } else {
+                            c.left = stack.left;
+                        }
+                        c.top = stack.top;
                     }
-
-                    if (cards.length === 1) {
-                        card.left = stack.left + 0.2 * card.width;
-                    } else if (cards.length > 1) {
-                        last.left = stack.left + 0.2 * card.width;
-                        last.top = stack.top;
-                        card.left = stack.left + 0.4 * card.width;
-                    }
-
-                    card.top = stack.top;
                 },
             },
             true,
@@ -2146,9 +2147,14 @@ YUI.add(
 
                 turnOver: function () {
                     const deck = this.deck.stacks[0];
-                    const that = this;
 
                     if (hasFreeTableaus()) {
+                        if (typeof DCUI !== "undefined" && DCUI._showToast) {
+                            DCUI._showToast("Fill empty columns before dealing");
+                        }
+                        if (typeof DCSound !== "undefined") {
+                            DCSound.error();
+                        }
                         return;
                     }
 
@@ -2159,7 +2165,7 @@ YUI.add(
                             card.faceUp()
                                 .moveTo(stack)
                                 .after(function () {
-                                    that.stack.updateCardsPosition();
+                                    stack.updateCardsPosition();
                                 });
                         }
                     }, "tableau");

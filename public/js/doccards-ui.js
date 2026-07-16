@@ -46,6 +46,8 @@
       this.createAccessibilityToggle();
       this.createDealDisplay();
       this.createSoundToggle();
+      this.createUndoFab();
+      this.createHintFab();
       this.createHUD();
       this.loadFavorites();
       this.tagDifficulties();
@@ -58,26 +60,60 @@
       this.renderFavorites();
       this.updateDealNumber();
       this.showCoachIfNeeded();
+      this.showIosInstallHintIfNeeded();
+    },
+
+    showIosInstallHintIfNeeded: function () {
+      try {
+        if (localStorage.getItem("doccards_ios_install_seen") === "1") return;
+      } catch (e) { return; }
+      var isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+        (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      var standalone = window.navigator.standalone === true ||
+        window.matchMedia("(display-mode: standalone)").matches;
+      if (!isIos || standalone) return;
+      var tip = document.createElement("div");
+      tip.id = "dc-ios-install";
+      tip.className = "pwa-ios-prompt";
+      tip.innerHTML =
+        '<div class="pwa-ios-card">' +
+        '<p><strong>Install Doc\'s Cards</strong></p>' +
+        '<p>Tap Share <span aria-hidden="true">\u2399</span> then <strong>Add to Home Screen</strong> for fullscreen play offline.</p>' +
+        '<button type="button" class="doccards-btn" id="dc-ios-install-ok">Got it</button>' +
+        "</div>";
+      document.body.appendChild(tip);
+      document.getElementById("dc-ios-install-ok").addEventListener("click", function () {
+        try { localStorage.setItem("doccards_ios_install_seen", "1"); } catch (e) {}
+        tip.remove();
+      });
     },
 
     hookEvents: function () {
       var self = this;
-      if (this._eventsBound) return;
+      if (this._eventsBound || this._eventsBinding) return;
+      this._eventsBinding = true;
 
       var bind = function () {
         var Y = root.Y;
         if (!Y || !Y.Solitaire) return false;
         try {
           Y.on("newGame", function () {
+            self._undoing = false;
             self.resetHUD();
             self.showHUD();
             self.updateDealNumber();
             setTimeout(function () { self.renderFavorites(); }, 300);
+            if (typeof DCSound !== "undefined" && DCSound.deal) DCSound.deal();
           });
           Y.on("endTurn", function () {
             if (!self._undoing) {
               self.updateMoveCount();
-              if (typeof DCSound !== "undefined") DCSound.cardPlace();
+              var skip = 0;
+              if (typeof DCFX !== "undefined") {
+                skip = DCFX._skipPlaceSound || 0;
+                if (skip > 0) DCFX._skipPlaceSound = skip - 1;
+              }
+              if (!skip && typeof DCSound !== "undefined") DCSound.cardPlace();
             }
             self._undoing = false;
           });
@@ -85,12 +121,26 @@
             self.hideHUD();
             if (typeof DCSound !== "undefined") DCSound.win();
           });
-          Y.on("beforeSetup", function () { self.showHUD(); });
+          Y.on("beforeSetup", function () {
+            self._undoing = false;
+            self.showHUD();
+          });
           Y.on("load", function () {
             setTimeout(function () { self.updateDealNumber(); }, 300);
           });
           Y.on("afterSetup", function () {
             self.updateDealNumber();
+          });
+          Y.on("undo", function () {
+            // Only mark undoing; move count adjusts after real undo in endTurn path.
+            // Decrement only when a prior move existed (no-op undos stay put).
+            self._undoing = true;
+            if (self._moveCount > 0) {
+              self._moveCount--;
+              var el = document.getElementById("dc-moves");
+              if (el) el.textContent = self._moveCount;
+            }
+            setTimeout(function () { self._undoing = false; }, 400);
           });
 
           self.resetHUD();
@@ -98,6 +148,7 @@
           self.updateDealNumber();
           setTimeout(function () { self.renderFavorites(); }, 300);
           self._eventsBound = true;
+          self._eventsBinding = false;
           Logger.info("dcui_events_bound");
           return true;
         } catch (e) {
@@ -111,28 +162,19 @@
       var retries = 0;
       var maxRetries = 40;
       var poll = function () {
+        if (self._eventsBound) return;
         if (bind()) return;
         retries++;
         if (retries < maxRetries) setTimeout(poll, 250);
-        else Logger.warn("dcui_hook_timeout");
+        else {
+          self._eventsBinding = false;
+          Logger.warn("dcui_hook_timeout");
+        }
       };
       setTimeout(poll, 200);
 
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.addEventListener("controllerchange", function () {
-          self._showToast("Updated! Refresh to get the latest version.");
-        });
-        navigator.serviceWorker.ready.then(function (reg) {
-          reg.addEventListener("updatefound", function () {
-            var newWorker = reg.installing;
-            if (!newWorker) return;
-            newWorker.addEventListener("statechange", function () {
-              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                self._showToast("Update available — refresh to update.");
-              }
-            });
-          });
-        });
+        // Update UX is owned by index.html (offers tap-to-refresh mid-game).
       }
     },
 
@@ -147,10 +189,82 @@
       document.body.appendChild(btn);
     },
 
+    createUndoFab: function () {
+      if (document.getElementById("undo-fab")) return;
+      var btn = document.createElement("button");
+      btn.id = "undo-fab";
+      btn.type = "button";
+      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">↶</span><span class="fab-label">Undo</span>';
+      btn.title = "Undo last move";
+      btn.setAttribute("aria-label", "Undo last move");
+      btn.addEventListener("click", function () {
+        try {
+          DCUI._undoing = true;
+          var Y = root.Y;
+          if (Y && Y.Solitaire && Y.Solitaire.game && Y.Solitaire.game.undo) {
+            Y.Solitaire.game.undo();
+          } else {
+            var menuUndo = document.getElementById("undo");
+            if (menuUndo) menuUndo.click();
+          }
+        } catch (e) {
+          Logger.warn("undo_fab_failed", { error: e.message });
+        }
+      });
+      document.body.appendChild(btn);
+    },
+
+    createHintFab: function () {
+      if (document.getElementById("hint-fab")) return;
+      var btn = document.createElement("button");
+      btn.id = "hint-fab";
+      btn.type = "button";
+      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">H</span><span class="fab-label">Hint</span>';
+      btn.title = "Hint: try a foundation move";
+      btn.setAttribute("aria-label", "Show a hint");
+      btn.addEventListener("click", this.showHint.bind(this));
+      document.body.appendChild(btn);
+    },
+
+    showHint: function () {
+      try {
+        var Y = root.Y;
+        var Game = Y && Y.Solitaire && Y.Solitaire.game;
+        if (!Game) {
+          this._showToast("Start a game first");
+          return;
+        }
+        var found = false;
+        Game.eachStack(function (stack) {
+          if (found) return;
+          if (!stack || stack.field === "foundation" || stack.field === "deck") return;
+          stack.eachCard(function (card) {
+            if (found || !card || card.isFaceDown) return;
+            if (typeof card.autoPlay === "function" && card.autoPlay()) {
+              found = true;
+              return false;
+            }
+          });
+        });
+        if (found) {
+          this._showToast("Hint played to foundation", "praise");
+          if (typeof DCSound !== "undefined" && DCSound.foundation) DCSound.foundation();
+        } else {
+          this._showToast("No free foundation move — try the tableau");
+          if (typeof DCSound !== "undefined" && DCSound.error) DCSound.error();
+        }
+      } catch (e) {
+        this._showToast("Hint unavailable right now");
+      }
+    },
+
     createRulesOverlay: function () {
       var overlay = document.createElement("div");
       overlay.id = "rules-overlay";
       overlay.className = "rules-overlay hidden";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-labelledby", "rules-title");
       var inner = document.createElement("div");
       inner.className = "rules-content";
       var title = document.createElement("h2");
@@ -187,13 +301,7 @@
         "</div></div>";
       document.body.appendChild(overlay);
       this._confirmOverlay = overlay;
-      var self = this;
-      document.getElementById("dc-confirm-cancel").addEventListener("click", function () {
-        self._hideConfirm();
-      });
-      overlay.addEventListener("click", function (e) {
-        if (e.target === overlay) self._hideConfirm();
-      });
+      // Click handlers are attached per-open in confirmAction (avoids leaked listeners).
     },
 
     confirmAction: function (message, onConfirm) {
@@ -205,13 +313,28 @@
       document.getElementById("dc-confirm-body").textContent = message;
       overlay.className = "rules-overlay";
       var ok = document.getElementById("dc-confirm-ok");
+      var cancel = document.getElementById("dc-confirm-cancel");
       var self = this;
-      var handler = function () {
-        ok.removeEventListener("click", handler);
+      var cleanup = function () {
+        ok.removeEventListener("click", onOk);
+        cancel.removeEventListener("click", onCancel);
+        overlay.removeEventListener("click", onBackdrop);
+      };
+      var onOk = function () {
+        cleanup();
         self._hideConfirm();
         onConfirm();
       };
-      ok.addEventListener("click", handler);
+      var onCancel = function () {
+        cleanup();
+        self._hideConfirm();
+      };
+      var onBackdrop = function (e) {
+        if (e.target === overlay) onCancel();
+      };
+      ok.addEventListener("click", onOk);
+      cancel.addEventListener("click", onCancel);
+      overlay.addEventListener("click", onBackdrop);
     },
 
     _hideConfirm: function () {
@@ -243,9 +366,62 @@
     showRules: function () {
       var data = this._getGameData();
       document.getElementById("rules-title").textContent = data.name;
-      document.getElementById("rules-body").innerHTML = "<p>" + data.desc + "</p>";
+      var body = document.getElementById("rules-body");
+      var full = this._getFullRulesHtml();
+      if (full) {
+        body.innerHTML = full;
+      } else {
+        body.innerHTML = "<p>" + data.desc + "</p>";
+      }
       this._rulesOverlay.className = "rules-overlay";
+      var closeBtn = document.getElementById("rules-close");
+      if (closeBtn) closeBtn.focus();
       Logger.info("show_rules", { game: data.name });
+    },
+
+    _getFullRulesHtml: function () {
+      try {
+        var Y = root.Y;
+        var name = Y && Y.Solitaire && Y.Solitaire.game && Y.Solitaire.game.name && Y.Solitaire.game.name();
+        // Map engine name → chooser li id
+        var idMap = {
+          Agnes: "agnes",
+          Klondike: "klondike",
+          Klondike1T: "klondike1t",
+          FlowerGarden: "flower-garden",
+          FortyThieves: "forty-thieves",
+          Freecell: "freecell",
+          Golf: "golf",
+          GClock: "grandfathers-clock",
+          MonteCarlo: "monte-carlo",
+          Pyramid: "pyramid",
+          RussianSolitaire: "russian-solitaire",
+          Scorpion: "scorpion",
+          Spider: "spider",
+          Spider1S: "spider1s",
+          Spider2S: "spider2s",
+          Spiderette: "spiderette",
+          TriTowers: "tri-towers",
+          WillOTheWisp: "will-o-the-wisp",
+          Yukon: "yukon"
+        };
+        var liId = idMap[name];
+        if (!liId) return null;
+        var li = document.getElementById(liId);
+        if (!li) return null;
+        var desc = li.querySelector(".description");
+        if (!desc) return null;
+        var clone = desc.cloneNode(true);
+        var layout = clone.querySelector(".layout");
+        if (layout) layout.remove();
+        var playBtn = clone.querySelector("button.choose");
+        if (playBtn) playBtn.remove();
+        // Make description visible in overlay (chooser CSS hides unselected)
+        clone.style.display = "block";
+        return clone.innerHTML;
+      } catch (e) {
+        return null;
+      }
     },
 
     hideRules: function () {
@@ -271,7 +447,22 @@
       btn.setAttribute("aria-label", "Toggle large cards and text for easier reading");
       btn.addEventListener("click", this.toggleBigCards.bind(this));
       document.body.appendChild(btn);
-      if (localStorage.getItem(this.BIG_CARDS_KEY) === "true") {
+      var preferBig = false;
+      try {
+        preferBig = localStorage.getItem(this.BIG_CARDS_KEY) === "true";
+        // iPad / large tablets: default to Big Cards for Grandpa-friendly play.
+        if (localStorage.getItem(this.BIG_CARDS_KEY) === null) {
+          var isIpad = (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1) ||
+            /iPad/.test(navigator.userAgent) ||
+            (Math.min(window.innerWidth, window.innerHeight) >= 700 &&
+              window.matchMedia && window.matchMedia("(pointer: coarse)").matches);
+          if (isIpad) {
+            preferBig = true;
+            localStorage.setItem(this.BIG_CARDS_KEY, "true");
+          }
+        }
+      } catch (e) {}
+      if (preferBig) {
         document.body.classList.add("big-cards");
         btn.classList.add("active");
       }
@@ -282,6 +473,7 @@
       try { localStorage.setItem(this.BIG_CARDS_KEY, String(isBig)); } catch (e) {}
       var btn = document.getElementById("a11y-toggle");
       if (btn) btn.classList.toggle("active", isBig);
+      this._showToast(isBig ? "Bigger cards on" : "Standard cards");
       try {
         var Y = root.Y;
         if (Y && Y.Solitaire && Y.Solitaire.Application && Y.Solitaire.Application.pickThemeSize) {
@@ -311,30 +503,44 @@
       btn.type = "button";
       btn.title = "Toggle sound";
       btn.setAttribute("aria-label", "Sound on");
-      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">\uD83D\uDD0A</span><span class="fab-label">Sound</span>';
+      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">♪</span><span class="fab-label">Sound</span>';
+      btn.classList.add("active");
       btn.addEventListener("click", function () {
-        if (typeof DCSound !== "undefined") {
-          DCSound.enabled(!DCSound.enabled());
-          var on = DCSound.enabled();
-          btn.querySelector(".fab-glyph").textContent = on ? "\uD83D\uDD0A" : "\uD83D\uDD07";
-          btn.setAttribute("aria-label", on ? "Sound on" : "Sound off");
+        if (typeof DCSound === "undefined") return;
+        var next = !DCSound.enabled();
+        DCSound.enabled(next);
+        if (next && DCSound.unlock) {
+          DCSound.unlock();
         }
+        var on = DCSound.enabled();
+        btn.querySelector(".fab-glyph").textContent = on ? "♪" : "–";
+        btn.classList.toggle("active", on);
+        btn.setAttribute("aria-label", on ? "Sound on" : "Sound off");
+        if (on) DCUI._showToast("Sound on");
+        else DCUI._showToast("Sound off");
       });
       document.body.appendChild(btn);
+      try {
+        if (typeof DCSound !== "undefined" && !DCSound.enabled()) {
+          btn.querySelector(".fab-glyph").textContent = "–";
+          btn.classList.remove("active");
+          btn.setAttribute("aria-label", "Sound off");
+        }
+      } catch (e) {}
     },
 
     createDealDisplay: function () {
       var el = document.createElement("div");
       el.id = "deal-number";
       el.className = "deal-display hidden";
-      el.innerHTML = '<span class="deal-label">Deal</span> <span id="deal-value">#---</span> <button id="copy-deal" type="button" aria-label="Copy deal number" title="Copy deal number">\uD83D\uDCCB</button>';
+      el.innerHTML = '<span class="deal-label">Deal</span> <span id="deal-value">#---</span> <button id="copy-deal" type="button" aria-label="Copy deal number" title="Copy deal number">Copy</button>';
       document.body.appendChild(el);
       this._dealEl = el;
       document.getElementById("copy-deal").addEventListener("click", function () {
         var val = document.getElementById("deal-value").textContent.replace("#", "");
         if (navigator.clipboard) {
           navigator.clipboard.writeText(val).then(function () {
-            DCUI._showToast("Deal number copied!");
+            DCUI._showToast("Deal number copied");
           });
         } else {
           var ta = document.createElement("textarea");
@@ -343,7 +549,7 @@
           ta.select();
           document.execCommand("copy");
           document.body.removeChild(ta);
-          DCUI._showToast("Deal number copied!");
+          DCUI._showToast("Deal number copied");
         }
       });
     },
@@ -376,7 +582,16 @@
     updateMoveCount: function () {
       this._moveCount++;
       var el = document.getElementById("dc-moves");
-      if (el) el.textContent = this._moveCount;
+      if (el) {
+        el.textContent = this._moveCount;
+        el.classList.remove("dc-hud-bump");
+        void el.offsetWidth;
+        el.classList.add("dc-hud-bump");
+      }
+      // Soft milestone nudges for long, satisfying games
+      if (this._moveCount === 25 || this._moveCount === 50 || this._moveCount === 100) {
+        this._showToast(this._moveCount + " moves", "milestone");
+      }
     },
 
     updateTimer: function () {
@@ -610,16 +825,36 @@
       render();
     },
 
-    _showToast: function (msg) {
+    _toastQueue: [],
+    _toastShowing: false,
+
+    _showToast: function (msg, kind) {
+      this._toastQueue.push({ msg: msg, kind: kind || "" });
+      this._drainToastQueue();
+    },
+
+    _drainToastQueue: function () {
+      if (this._toastShowing) return;
+      var next = this._toastQueue.shift();
+      if (!next) return;
+      this._toastShowing = true;
       var existing = document.getElementById("dc-toast");
       if (existing) existing.remove();
       var toast = document.createElement("div");
       toast.id = "dc-toast";
-      toast.className = "dc-toast";
-      toast.textContent = msg;
+      toast.className = "dc-toast" + (next.kind ? " dc-toast--" + next.kind : "");
+      toast.setAttribute("role", "status");
+      toast.setAttribute("aria-live", "polite");
+      toast.textContent = next.msg;
       document.body.appendChild(toast);
       clearTimeout(this._toastTimeout);
-      this._toastTimeout = setTimeout(function () { toast.remove(); }, 2000);
+      var hold = next.kind === "win" || next.kind === "suit" ? 2400 : 1800;
+      var self = this;
+      this._toastTimeout = setTimeout(function () {
+        toast.remove();
+        self._toastShowing = false;
+        self._drainToastQueue();
+      }, hold);
     }
   };
 
