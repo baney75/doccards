@@ -1,4 +1,4 @@
-var CACHE_NAME = 'doccards-v16';
+var CACHE_NAME = 'doccards-v17';
 // Warm sharp decks first; skip tiny 61 (too soft on retina).
 var CARD_SIZES = [95, 122, 244];
 var SUITS = ['s', 'h', 'c', 'd'];

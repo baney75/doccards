@@ -36,16 +36,21 @@
 
 .playable {
   cursor: pointer;
-  -webkit-transition: box-shadow 0.2s linear;
-  -moz-transition: box-shadow 0.2s linear;
-  -ms-transition: box-shadow 0.2s linear;
-  transition: box-shadow 0.2s linear; }
+  -webkit-transition: box-shadow 0.15s linear;
+  -moz-transition: box-shadow 0.15s linear;
+  -ms-transition: box-shadow 0.15s linear;
+  transition: box-shadow 0.15s linear; }
   .playable:hover {
-    box-shadow: 0 0 6px 4px rgba(255, 252, 143, 0.9);
+    box-shadow: none; }
+
+@media (hover: hover) and (pointer: fine) {
+  .playable:hover {
+    box-shadow: 0 0 0 3px rgba(232, 213, 163, 0.85);
     -webkit-transition: box-shadow 0s;
     -moz-transition: box-shadow 0s;
     -ms-transition: box-shadow 0s;
     transition: box-shadow 0s; }
+}
 
 #menu {
   display: inline-block;

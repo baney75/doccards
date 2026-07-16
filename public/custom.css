@@ -59,6 +59,49 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Kill browser blue drag-select / image-drag on the felt (keep text selectable in dialogs). */
+.solitairey_body,
+.solitairey_body .card,
+.solitairey_body .stack,
+.solitairey_body #menu,
+.solitairey_body #doccards-header,
+.solitairey_body .deal-display,
+.solitairey_body #rules-btn,
+.solitairey_body #a11y-toggle,
+.solitairey_body #sound-toggle {
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+}
+
+.solitairey_body img {
+  -webkit-user-drag: none;
+  user-drag: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+#rules-overlay,
+#rules-overlay *,
+#dc-confirm,
+#dc-confirm *,
+.rules-content,
+.rules-content * {
+  -webkit-user-select: text !important;
+  user-select: text !important;
+}
+
+::selection {
+  background: transparent;
+}
+.rules-content ::selection,
+#dc-confirm ::selection {
+  background: rgba(201, 169, 97, 0.35);
+}
+
 /* ---- iOS Safari 100vh fix ---- */
 .solitairey_body {
   min-height: 100vh;
@@ -513,19 +556,48 @@ button:focus-visible,
 }
 
 /* ---- Card touch handling + sharper scaled bitmaps ---- */
-.card {
+.card,
+.stack {
   -webkit-tap-highlight-color: transparent;
   -webkit-touch-callout: none;
   touch-action: manipulation;
   image-rendering: auto;
-  -webkit-backface-visibility: hidden;
-  backface-visibility: hidden;
-  transform: translateZ(0);
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  outline: none;
 }
 
-.card img,
-img.card {
+img.card,
+img.stack {
   image-rendering: auto;
+  /* Avoid GPU-layer ghosting / double-edge artifacts on iPad */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* Sticky hover glow looks like “ghost cards” on touch — only on fine pointers */
+.playable {
+  cursor: pointer;
+  transition: box-shadow 0.15s linear;
+}
+.playable:hover {
+  box-shadow: none;
+}
+@media (hover: hover) and (pointer: fine) {
+  .playable:hover {
+    box-shadow: 0 0 0 3px rgba(232, 213, 163, 0.85);
+  }
+}
+
+/* Hide YUI drag shim visual noise */
+.yui3-dd-shim {
+  cursor: grab !important;
+  background: transparent !important;
+}
+.yui3-dd-proxy {
+  opacity: 0.96 !important;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
 }
 
 /* Minimum tap target size (WCAG 2.1) */
@@ -1433,9 +1505,10 @@ img.card {
   align-items: flex-end;
   justify-content: center;
   padding: 16px;
-  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
-  background: rgba(13, 34, 64, 0.35);
-  pointer-events: auto;
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
+  background: transparent;
+  /* Never block Deal / Undo / cards — tip card alone captures clicks */
+  pointer-events: none;
 }
 
 .dc-coach-card {
@@ -1447,6 +1520,7 @@ img.card {
   padding: 18px 20px;
   box-shadow: 0 8px 28px rgba(0,0,0,0.28);
   animation: dc-coach-in 0.35s ease-out;
+  pointer-events: auto;
 }
 
 .dc-coach-card p {
@@ -1489,6 +1563,16 @@ body.dc-invalid-nudge #dc-toast {
   display: none;
 }
 
+#descriptions > li.selected {
+  border-color: #C9A961;
+  box-shadow: 0 0 0 2px rgba(201, 169, 97, 0.55);
+  background: rgba(248, 241, 227, 0.96);
+}
+
 #descriptions > li.selected .description {
   display: block;
+}
+
+#descriptions > li.selected > h2 {
+  color: #9C1E1E;
 }

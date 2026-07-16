@@ -189,18 +189,26 @@ define(["./solitaire"], function (solitaire) {
             },
 
             select: function (game) {
-                const node = Y.one("#" + game + "> div"),
-                    previous = this.selected;
+                const previous = this.selected;
+                const li = document.getElementById(game);
+
+                if (!game || !li) {
+                    return;
+                }
 
                 if (previous !== game) {
                     this.unSelect();
                 }
 
-                if (node) {
-                    this.selected = game;
-                    new Y.Node(document.getElementById(game)).addClass(
-                        "selected",
-                    );
+                this.selected = game;
+                li.classList.add("selected");
+                // Keep the chosen game visible in the chooser list.
+                if (typeof li.scrollIntoView === "function") {
+                    try {
+                        li.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                    } catch (e) {
+                        li.scrollIntoView(false);
+                    }
                 }
 
                 if (previous && previous !== game) {
@@ -213,9 +221,10 @@ define(["./solitaire"], function (solitaire) {
                     return;
                 }
 
-                new Y.Node(document.getElementById(this.selected)).removeClass(
-                    "selected",
-                );
+                const el = document.getElementById(this.selected);
+                if (el) {
+                    el.classList.remove("selected");
+                }
                 this.selected = null;
             },
         };

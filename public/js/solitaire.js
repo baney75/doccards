@@ -503,22 +503,48 @@ define([], function () {
                 init: function () {
                     const cancel = Solitaire.preventDefault;
 
-                    if (false) {
-                        Y.on("selectstart", cancel, document);
-                        Y.on("mousedown", cancel, document.body);
-                        Y.on(
-                            "contextmenu",
-                            function (e) {
-                                const target = e.target;
-
-                                if (
-                                    target.hasClass("stack") ||
-                                    target.hasClass("card")
-                                ) {
-                                    e.preventDefault();
+                    // Prevent blue drag-select rectangles while playing (iPad/desktop).
+                    Y.on("selectstart", cancel, document);
+                    Y.on(
+                        "dragstart",
+                        function (e) {
+                            const t = e.target;
+                            if (
+                                t &&
+                                (t.hasClass("card") ||
+                                    t.hasClass("stack") ||
+                                    t.get("tagName") === "IMG")
+                            ) {
+                                e.preventDefault();
+                            }
+                        },
+                        document,
+                    );
+                    Y.on(
+                        "contextmenu",
+                        function (e) {
+                            const target = e.target;
+                            if (
+                                target.hasClass("stack") ||
+                                target.hasClass("card")
+                            ) {
+                                e.preventDefault();
+                            }
+                        },
+                        document,
+                    );
+                    // Clear any existing browser selection when interacting with the table.
+                    if (typeof document.addEventListener === "function") {
+                        document.addEventListener(
+                            "pointerdown",
+                            function () {
+                                const sel =
+                                    window.getSelection && window.getSelection();
+                                if (sel && sel.rangeCount && sel.removeAllRanges) {
+                                    sel.removeAllRanges();
                                 }
                             },
-                            document,
+                            true,
                         );
                     }
 
@@ -1017,10 +1043,12 @@ define([], function () {
                     const card = this;
 
                     const node = (this.node = Y.Node.create(
-                        "<img class='card' />",
+                        "<img class='card' draggable='false' />",
                     )
                         .setData("target", this)
                         .setAttribute("src", this.imageSrc())
+                        .setAttribute("alt", "")
+                        .setAttribute("draggable", "false")
                         .plug(Y.Plugin.Drop, {
                             useShim: false,
                         }));
