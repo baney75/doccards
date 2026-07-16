@@ -544,9 +544,9 @@ define(["./solitaire"], function (solitaire) {
             } else if (dpr >= 2) {
                 // iPhone / retina phones
                 size = bigCards ? 244 : 122;
-            } else if (effective < 700) {
+            } else if (minDim < 500) {
                 size = bigCards ? 95 : 79;
-            } else if (effective < 1200) {
+            } else if (minDim < 900) {
                 size = bigCards ? 122 : 95;
             } else {
                 size = bigCards ? 244 : 122;
