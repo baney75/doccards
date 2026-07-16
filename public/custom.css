@@ -89,7 +89,9 @@ body {
 #dc-confirm,
 #dc-confirm *,
 .rules-content,
-.rules-content * {
+.rules-content *,
+#game-chooser .description,
+#game-chooser .description * {
   -webkit-user-select: text !important;
   user-select: text !important;
 }
@@ -98,7 +100,8 @@ body {
   background: transparent;
 }
 .rules-content ::selection,
-#dc-confirm ::selection {
+#dc-confirm ::selection,
+#game-chooser .description ::selection {
   background: rgba(201, 169, 97, 0.35);
 }
 
@@ -205,8 +208,20 @@ body {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  padding-top: env(safe-area-inset-top, 0);
-  z-index: 1001;
+  padding-top: calc(12px + env(safe-area-inset-top, 0));
+  /* Above brand header (9000) so Return to game is always clickable */
+  z-index: 9500 !important;
+}
+
+#game-chooser.show {
+  position: fixed !important;
+  inset: 0;
+  left: 0 !important;
+  top: 0 !important;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 #game-chooser-contents {
@@ -306,6 +321,8 @@ body {
 /* ---- Close Chooser Button ---- */
 #close-chooser {
   display: block;
+  position: relative;
+  z-index: 2;
   margin: 10px auto 14px;
   background: linear-gradient(to bottom, #0D2240, #091528);
   color: #C9A961;

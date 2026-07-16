@@ -1,4 +1,4 @@
-var CACHE_NAME = 'doccards-v18';
+var CACHE_NAME = 'doccards-v19';
 // Include every size pickThemeSize() may choose (79 on small non-retina).
 var CARD_SIZES = [79, 95, 122, 244];
 var SUITS = ['s', 'h', 'c', 'd'];
