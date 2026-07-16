@@ -165,6 +165,16 @@ define(["./solitaire"], function (solitaire) {
                     this.fade = true;
                 }
 
+                // Coach tip card sits above the chooser — dismiss so it cannot block Play.
+                var coach = document.getElementById("dc-coach");
+                if (coach) {
+                    try {
+                        localStorage.setItem("doccards_coach_seen", "1");
+                    } catch (e) {}
+                    coach.remove();
+                }
+
+                this._lastTouchSelect = null;
                 Y.one("#game-chooser").addClass("show");
                 Y.one(".solitairey_body").addClass("scrollable");
             },
@@ -418,14 +428,20 @@ define(["./solitaire"], function (solitaire) {
                 if (target && target.closest && target.closest(".fav-star")) {
                     return;
                 }
-                GameChooser.select(e.currentTarget._node.id);
-                // Touch / narrow screens: one tap plays (Grandpa-friendly).
+                var id = e.currentTarget._node.id;
+                GameChooser.select(id);
+                // Touch / narrow: first tap expands rules; second tap on same game plays.
                 var touchy =
                     window.matchMedia &&
                     (window.matchMedia("(pointer: coarse)").matches ||
                         window.matchMedia("(max-width: 700px)").matches);
-                if (touchy) {
+                if (touchy && GameChooser._lastTouchSelect === id) {
                     GameChooser.choose();
+                    GameChooser._lastTouchSelect = null;
+                    return;
+                }
+                if (touchy) {
+                    GameChooser._lastTouchSelect = id;
                 }
             }
             function playFromChooser(e) {

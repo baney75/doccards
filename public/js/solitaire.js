@@ -628,13 +628,29 @@ define([], function () {
                         return;
                     }
 
-                    // Guard against synthetic duplicate clicks.
+                    // Guard against synthetic duplicate clicks on the same card only.
+                    // Do NOT debounce across different cards — that blocks rapid stock deals.
                     var now = Date.now();
-                    if (Solitaire._lastCardClickAt && now - Solitaire._lastCardClickAt < 350) {
+                    var cardKey =
+                        (card.suit || "") +
+                        ":" +
+                        (card.rank || "") +
+                        ":" +
+                        (card.stack && card.stack.field) +
+                        ":" +
+                        (card.stack && card.stack.cards
+                            ? card.stack.cards.indexOf(card)
+                            : -1);
+                    if (
+                        Solitaire._lastCardClickKey === cardKey &&
+                        Solitaire._lastCardClickAt &&
+                        now - Solitaire._lastCardClickAt < 280
+                    ) {
                         e.preventDefault();
                         return;
                     }
                     Solitaire._lastCardClickAt = now;
+                    Solitaire._lastCardClickKey = cardKey;
 
                     card.dragging = false;
                     card.turnOver(e);
