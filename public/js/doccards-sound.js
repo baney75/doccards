@@ -141,6 +141,46 @@
       setTimeout(function () {
         self._tone("sine", 1318.5, 1318.5, 0.45, 0.5);
       }, 600);
+      setTimeout(function () {
+        self._tone("triangle", 1568, 1568, 0.35, 0.45);
+      }, 780);
+    },
+
+    foundation: function () {
+      this._tone("sine", 880, 1175, 0.11, 0.5);
+      this._tone("triangle", 1175, 1568, 0.14, 0.32);
+    },
+
+    suitClear: function () {
+      var self = this;
+      [784, 988, 1175, 1568].forEach(function (n, i) {
+        setTimeout(function () {
+          self._tone("triangle", n, n, 0.16, 0.55);
+        }, i * 90);
+      });
+    },
+
+    milestone: function () {
+      this._tone("sine", 660, 880, 0.12, 0.4);
+      this._tone("triangle", 880, 990, 0.14, 0.35);
+    },
+
+    combo: function () {
+      this._tone("sine", 990, 1320, 0.1, 0.42);
+    },
+
+    undo: function () {
+      this._tone("sine", 420, 320, 0.08, 0.28);
+      this._noise(0.03, 0.08, 1400);
+    },
+
+    deal: function () {
+      var self = this;
+      [520, 620, 740].forEach(function (n, i) {
+        setTimeout(function () {
+          self._tone("triangle", n, n * 0.9, 0.07, 0.3);
+        }, i * 45);
+      });
     },
 
     error: function () {

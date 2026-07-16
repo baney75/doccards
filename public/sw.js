@@ -1,4 +1,4 @@
-var CACHE_NAME = 'doccards-v19';
+var CACHE_NAME = 'doccards-v20';
 // Include every size pickThemeSize() may choose (79 on small non-retina).
 var CARD_SIZES = [79, 95, 122, 244];
 var SUITS = ['s', 'h', 'c', 'd'];
@@ -53,11 +53,16 @@ var PRECACHE_URLS = [
   asset('/favicon.svg'),
   asset('/manifest.json'),
   asset('/apple-touch-icon-180.png'),
+  asset('/apple-touch-icon-167.png'),
+  asset('/apple-touch-icon-152.png'),
+  asset('/apple-touch-icon-120.png'),
   asset('/apple-touch-icon-precomposed.png'),
   asset('/pwa-192x192.png'),
   asset('/pwa-512x512.png'),
+  asset('/pwa-maskable-192.png'),
   asset('/pwa-maskable-512.png'),
   asset('/brand-mark.webp'),
+  asset('/brand-mark.png'),
   asset('/og-image.png'),
   asset('/fonts/playfair-display-latin-700-normal.woff2'),
   asset('/fonts/inter-latin-400-normal.woff2'),
@@ -78,7 +83,8 @@ var PRECACHE_URLS = [
   asset('/js/doccards-storage.js'),
   asset('/js/doccards-logger.js'),
   asset('/js/doccards-sound.js'),
-  asset('/js/doccards-ui.js')
+  asset('/js/doccards-ui.js'),
+  asset('/js/doccards-fx.js')
 ];
 
 function cardImagesForSize(size) {

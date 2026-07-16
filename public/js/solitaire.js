@@ -975,11 +975,15 @@ define([], function () {
                 },
 
                 faceUp: function (undo) {
+                    var wasDown = this.isFaceDown;
                     this.isFaceDown = false;
                     this.setRankHeight();
                     this.setImageSrc();
 
                     undo || Solitaire.pushMove({ card: this, faceDown: false });
+                    if (!undo && wasDown && typeof DCSound !== "undefined" && DCSound.cardFlip) {
+                        DCSound.cardFlip();
+                    }
 
                     return this;
                 },

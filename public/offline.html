@@ -3,7 +3,9 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#0D2240" />
     <title>Doc's Cards — Offline</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <style>
         @font-face {
             font-family: "Playfair Display";
@@ -25,7 +27,9 @@
             justify-content: center;
             min-height: 100vh;
             min-height: 100dvh;
-            background: #0D2240;
+            background:
+              radial-gradient(ellipse at top, rgba(201, 169, 97, 0.18), transparent 50%),
+              #0D2240;
             color: #F8F1E3;
             font-family: 'Inter', Helvetica, sans-serif;
             text-align: center;
@@ -34,21 +38,26 @@
             padding: 24px;
             max-width: 400px;
         }
+        .mark {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 16px;
+            border-radius: 16px;
+            border: 2px solid #C9A961;
+            background: #0a1a30 url("brand-mark.webp") center / cover no-repeat;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        }
         h1 {
             font-family: 'Playfair Display', Georgia, serif;
             color: #C9A961;
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             margin: 0 0 8px;
         }
         p {
             color: #E8D5A3;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             line-height: 1.5;
-            margin: 0 0 16px;
-        }
-        .icon {
-            font-size: 3rem;
-            margin-bottom: 12px;
+            margin: 0 0 18px;
         }
         button {
             background: linear-gradient(to bottom, #9C1E1E, #7a1616);
@@ -57,6 +66,7 @@
             border-radius: 8px;
             padding: 12px 28px;
             font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
             min-height: 44px;
         }
@@ -64,7 +74,7 @@
 </head>
 <body>
     <div class="container">
-        <div class="icon">&#x1F0CF;</div>
+        <div class="mark" role="img" aria-label="Doc's Cards"></div>
         <h1>You're Offline</h1>
         <p>Your game is saved. Reconnect to load Doc's Cards, or refresh once you're back online.</p>
         <button type="button" onclick="window.location.reload()">Try Again</button>

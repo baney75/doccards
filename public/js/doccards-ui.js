@@ -100,11 +100,14 @@
             self.showHUD();
             self.updateDealNumber();
             setTimeout(function () { self.renderFavorites(); }, 300);
+            if (typeof DCSound !== "undefined" && DCSound.deal) DCSound.deal();
           });
           Y.on("endTurn", function () {
             if (!self._undoing) {
               self.updateMoveCount();
-              if (typeof DCSound !== "undefined") DCSound.cardPlace();
+              var skipPlace = typeof DCFX !== "undefined" && DCFX._skipPlaceSound;
+              if (typeof DCFX !== "undefined") DCFX._skipPlaceSound = false;
+              if (!skipPlace && typeof DCSound !== "undefined") DCSound.cardPlace();
             }
             self._undoing = false;
           });
@@ -118,6 +121,14 @@
           });
           Y.on("afterSetup", function () {
             self.updateDealNumber();
+          });
+          Y.on("undo", function () {
+            self._undoing = true;
+            if (self._moveCount > 0) {
+              self._moveCount--;
+              var el = document.getElementById("dc-moves");
+              if (el) el.textContent = self._moveCount;
+            }
           });
 
           self.resetHUD();
@@ -342,6 +353,7 @@
       try { localStorage.setItem(this.BIG_CARDS_KEY, String(isBig)); } catch (e) {}
       var btn = document.getElementById("a11y-toggle");
       if (btn) btn.classList.toggle("active", isBig);
+      this._showToast(isBig ? "Bigger cards on" : "Standard cards");
       try {
         var Y = root.Y;
         if (Y && Y.Solitaire && Y.Solitaire.Application && Y.Solitaire.Application.pickThemeSize) {
@@ -371,7 +383,8 @@
       btn.type = "button";
       btn.title = "Toggle sound";
       btn.setAttribute("aria-label", "Sound on");
-      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">\uD83D\uDD0A</span><span class="fab-label">Sound</span>';
+      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">♪</span><span class="fab-label">Sound</span>';
+      btn.classList.add("active");
       btn.addEventListener("click", function () {
         if (typeof DCSound === "undefined") return;
         var next = !DCSound.enabled();
@@ -380,25 +393,34 @@
           DCSound.unlock();
         }
         var on = DCSound.enabled();
-        btn.querySelector(".fab-glyph").textContent = on ? "\uD83D\uDD0A" : "\uD83D\uDD07";
+        btn.querySelector(".fab-glyph").textContent = on ? "♪" : "–";
+        btn.classList.toggle("active", on);
         btn.setAttribute("aria-label", on ? "Sound on" : "Sound off");
         if (on) DCUI._showToast("Sound on");
+        else DCUI._showToast("Sound off");
       });
       document.body.appendChild(btn);
+      try {
+        if (typeof DCSound !== "undefined" && !DCSound.enabled()) {
+          btn.querySelector(".fab-glyph").textContent = "–";
+          btn.classList.remove("active");
+          btn.setAttribute("aria-label", "Sound off");
+        }
+      } catch (e) {}
     },
 
     createDealDisplay: function () {
       var el = document.createElement("div");
       el.id = "deal-number";
       el.className = "deal-display hidden";
-      el.innerHTML = '<span class="deal-label">Deal</span> <span id="deal-value">#---</span> <button id="copy-deal" type="button" aria-label="Copy deal number" title="Copy deal number">\uD83D\uDCCB</button>';
+      el.innerHTML = '<span class="deal-label">Deal</span> <span id="deal-value">#---</span> <button id="copy-deal" type="button" aria-label="Copy deal number" title="Copy deal number">Copy</button>';
       document.body.appendChild(el);
       this._dealEl = el;
       document.getElementById("copy-deal").addEventListener("click", function () {
         var val = document.getElementById("deal-value").textContent.replace("#", "");
         if (navigator.clipboard) {
           navigator.clipboard.writeText(val).then(function () {
-            DCUI._showToast("Deal number copied!");
+            DCUI._showToast("Deal number copied");
           });
         } else {
           var ta = document.createElement("textarea");
@@ -407,7 +429,7 @@
           ta.select();
           document.execCommand("copy");
           document.body.removeChild(ta);
-          DCUI._showToast("Deal number copied!");
+          DCUI._showToast("Deal number copied");
         }
       });
     },
@@ -440,7 +462,16 @@
     updateMoveCount: function () {
       this._moveCount++;
       var el = document.getElementById("dc-moves");
-      if (el) el.textContent = this._moveCount;
+      if (el) {
+        el.textContent = this._moveCount;
+        el.classList.remove("dc-hud-bump");
+        void el.offsetWidth;
+        el.classList.add("dc-hud-bump");
+      }
+      // Soft milestone nudges for long, satisfying games
+      if (this._moveCount === 25 || this._moveCount === 50 || this._moveCount === 100) {
+        this._showToast(this._moveCount + " moves", "milestone");
+      }
     },
 
     updateTimer: function () {
@@ -674,16 +705,17 @@
       render();
     },
 
-    _showToast: function (msg) {
+    _showToast: function (msg, kind) {
       var existing = document.getElementById("dc-toast");
       if (existing) existing.remove();
       var toast = document.createElement("div");
       toast.id = "dc-toast";
-      toast.className = "dc-toast";
+      toast.className = "dc-toast" + (kind ? " dc-toast--" + kind : "");
       toast.textContent = msg;
       document.body.appendChild(toast);
       clearTimeout(this._toastTimeout);
-      this._toastTimeout = setTimeout(function () { toast.remove(); }, 2000);
+      var hold = kind === "win" || kind === "suit" ? 2800 : 2000;
+      this._toastTimeout = setTimeout(function () { toast.remove(); }, hold);
     }
   };
 
