@@ -133,7 +133,9 @@ define(["./solitaire"], function (solitaire) {
                         localStorage[Solitaire.game.name() + "record"],
                     );
                 let output = "<div id='win_display'>";
-                const streakCount = _.last(stats.streaks()).length;
+                const streaks = stats.streaks();
+                const lastStreak = streaks.length ? streaks[streaks.length - 1] : [];
+                const streakCount = lastStreak.length;
                 const winCount = stats.wins().length;
 
                 var moves = (typeof DCUI !== "undefined" && DCUI._moveCount) || 0;
@@ -205,6 +207,9 @@ define(["./solitaire"], function (solitaire) {
 
             function Record(raw) {
                 function parse() {
+                    if (!raw || typeof raw !== "string") {
+                        return [];
+                    }
                     const entries = raw.split("|");
 
                     entries.splice(entries.length - 1);

@@ -104,7 +104,7 @@
     onFoundation: function (stack) {
       this._foundationHits++;
       this._comboHits++;
-      this._skipPlaceSound = true;
+      this._skipPlaceSound = (this._skipPlaceSound || 0) + 1;
       clearTimeout(this._comboTimer);
       var self = this;
       this._comboTimer = setTimeout(function () {
@@ -120,8 +120,8 @@
       this.sparkleNear(stack);
       this.flashStack(stack);
       this.bumpHud();
-      this.checkProgress();
-      this.checkSuitComplete(stack);
+      var suitDone = this.checkSuitComplete(stack);
+      this.checkProgress(suitDone);
 
       if (this._comboHits >= 3) {
         document.body.classList.add("dc-combo-hot");
@@ -136,15 +136,18 @@
 
     checkSuitComplete: function (stack) {
       try {
-        if (!stack || !stack.cards || stack.cards.length !== 13) return;
+        if (!stack || !stack.cards || stack.cards.length !== 13) return false;
         if (typeof DCSound !== "undefined" && DCSound.suitClear) DCSound.suitClear();
         this.toastPraise("Suit complete!", "suit");
         this.haptic([10, 40, 10]);
         this.burstConfetti(28, true);
-      } catch (e) {}
+        return true;
+      } catch (e) {
+        return false;
+      }
     },
 
-    checkProgress: function () {
+    checkProgress: function (skipToast) {
       try {
         var Y = root.Y;
         var Game = Y && Y.Solitaire && Y.Solitaire.game;
@@ -162,6 +165,7 @@
         var bucket = pct >= 75 ? 75 : pct >= 50 ? 50 : pct >= 25 ? 25 : 0;
         if (bucket > this._lastProgressBucket && bucket > 0) {
           this._lastProgressBucket = bucket;
+          if (skipToast) return;
           var lines = {
             25: "Quarter of the way!",
             50: "Halfway there!",

@@ -46,6 +46,8 @@
       this.createAccessibilityToggle();
       this.createDealDisplay();
       this.createSoundToggle();
+      this.createUndoFab();
+      this.createHintFab();
       this.createHUD();
       this.loadFavorites();
       this.tagDifficulties();
@@ -96,6 +98,7 @@
         if (!Y || !Y.Solitaire) return false;
         try {
           Y.on("newGame", function () {
+            self._undoing = false;
             self.resetHUD();
             self.showHUD();
             self.updateDealNumber();
@@ -105,9 +108,12 @@
           Y.on("endTurn", function () {
             if (!self._undoing) {
               self.updateMoveCount();
-              var skipPlace = typeof DCFX !== "undefined" && DCFX._skipPlaceSound;
-              if (typeof DCFX !== "undefined") DCFX._skipPlaceSound = false;
-              if (!skipPlace && typeof DCSound !== "undefined") DCSound.cardPlace();
+              var skip = 0;
+              if (typeof DCFX !== "undefined") {
+                skip = DCFX._skipPlaceSound || 0;
+                if (skip > 0) DCFX._skipPlaceSound = skip - 1;
+              }
+              if (!skip && typeof DCSound !== "undefined") DCSound.cardPlace();
             }
             self._undoing = false;
           });
@@ -115,7 +121,10 @@
             self.hideHUD();
             if (typeof DCSound !== "undefined") DCSound.win();
           });
-          Y.on("beforeSetup", function () { self.showHUD(); });
+          Y.on("beforeSetup", function () {
+            self._undoing = false;
+            self.showHUD();
+          });
           Y.on("load", function () {
             setTimeout(function () { self.updateDealNumber(); }, 300);
           });
@@ -123,12 +132,15 @@
             self.updateDealNumber();
           });
           Y.on("undo", function () {
+            // Only mark undoing; move count adjusts after real undo in endTurn path.
+            // Decrement only when a prior move existed (no-op undos stay put).
             self._undoing = true;
             if (self._moveCount > 0) {
               self._moveCount--;
               var el = document.getElementById("dc-moves");
               if (el) el.textContent = self._moveCount;
             }
+            setTimeout(function () { self._undoing = false; }, 400);
           });
 
           self.resetHUD();
@@ -162,24 +174,7 @@
       setTimeout(poll, 200);
 
       if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.addEventListener("controllerchange", function () {
-          // index.html also reloads; toast as a soft fallback for browsers that don't.
-          self._showToast("Updating Doc's Cards…");
-        });
-        navigator.serviceWorker.ready.then(function (reg) {
-          reg.addEventListener("updatefound", function () {
-            var newWorker = reg.installing;
-            if (!newWorker) return;
-            newWorker.addEventListener("statechange", function () {
-              if (newWorker.state === "installed" && navigator.serviceWorker.controller) {
-                self._showToast("Update ready — refreshing…");
-                if (newWorker.postMessage) {
-                  newWorker.postMessage({ type: "SKIP_WAITING" });
-                }
-              }
-            });
-          });
-        });
+        // Update UX is owned by index.html (offers tap-to-refresh mid-game).
       }
     },
 
@@ -194,10 +189,82 @@
       document.body.appendChild(btn);
     },
 
+    createUndoFab: function () {
+      if (document.getElementById("undo-fab")) return;
+      var btn = document.createElement("button");
+      btn.id = "undo-fab";
+      btn.type = "button";
+      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">↶</span><span class="fab-label">Undo</span>';
+      btn.title = "Undo last move";
+      btn.setAttribute("aria-label", "Undo last move");
+      btn.addEventListener("click", function () {
+        try {
+          DCUI._undoing = true;
+          var Y = root.Y;
+          if (Y && Y.Solitaire && Y.Solitaire.game && Y.Solitaire.game.undo) {
+            Y.Solitaire.game.undo();
+          } else {
+            var menuUndo = document.getElementById("undo");
+            if (menuUndo) menuUndo.click();
+          }
+        } catch (e) {
+          Logger.warn("undo_fab_failed", { error: e.message });
+        }
+      });
+      document.body.appendChild(btn);
+    },
+
+    createHintFab: function () {
+      if (document.getElementById("hint-fab")) return;
+      var btn = document.createElement("button");
+      btn.id = "hint-fab";
+      btn.type = "button";
+      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">H</span><span class="fab-label">Hint</span>';
+      btn.title = "Hint: try a foundation move";
+      btn.setAttribute("aria-label", "Show a hint");
+      btn.addEventListener("click", this.showHint.bind(this));
+      document.body.appendChild(btn);
+    },
+
+    showHint: function () {
+      try {
+        var Y = root.Y;
+        var Game = Y && Y.Solitaire && Y.Solitaire.game;
+        if (!Game) {
+          this._showToast("Start a game first");
+          return;
+        }
+        var found = false;
+        Game.eachStack(function (stack) {
+          if (found) return;
+          if (!stack || stack.field === "foundation" || stack.field === "deck") return;
+          stack.eachCard(function (card) {
+            if (found || !card || card.isFaceDown) return;
+            if (typeof card.autoPlay === "function" && card.autoPlay()) {
+              found = true;
+              return false;
+            }
+          });
+        });
+        if (found) {
+          this._showToast("Hint played to foundation", "praise");
+          if (typeof DCSound !== "undefined" && DCSound.foundation) DCSound.foundation();
+        } else {
+          this._showToast("No free foundation move — try the tableau");
+          if (typeof DCSound !== "undefined" && DCSound.error) DCSound.error();
+        }
+      } catch (e) {
+        this._showToast("Hint unavailable right now");
+      }
+    },
+
     createRulesOverlay: function () {
       var overlay = document.createElement("div");
       overlay.id = "rules-overlay";
       overlay.className = "rules-overlay hidden";
+      overlay.setAttribute("role", "dialog");
+      overlay.setAttribute("aria-modal", "true");
+      overlay.setAttribute("aria-labelledby", "rules-title");
       var inner = document.createElement("div");
       inner.className = "rules-content";
       var title = document.createElement("h2");
@@ -299,9 +366,62 @@
     showRules: function () {
       var data = this._getGameData();
       document.getElementById("rules-title").textContent = data.name;
-      document.getElementById("rules-body").innerHTML = "<p>" + data.desc + "</p>";
+      var body = document.getElementById("rules-body");
+      var full = this._getFullRulesHtml();
+      if (full) {
+        body.innerHTML = full;
+      } else {
+        body.innerHTML = "<p>" + data.desc + "</p>";
+      }
       this._rulesOverlay.className = "rules-overlay";
+      var closeBtn = document.getElementById("rules-close");
+      if (closeBtn) closeBtn.focus();
       Logger.info("show_rules", { game: data.name });
+    },
+
+    _getFullRulesHtml: function () {
+      try {
+        var Y = root.Y;
+        var name = Y && Y.Solitaire && Y.Solitaire.game && Y.Solitaire.game.name && Y.Solitaire.game.name();
+        // Map engine name → chooser li id
+        var idMap = {
+          Agnes: "agnes",
+          Klondike: "klondike",
+          Klondike1T: "klondike1t",
+          FlowerGarden: "flower-garden",
+          FortyThieves: "forty-thieves",
+          Freecell: "freecell",
+          Golf: "golf",
+          GClock: "grandfathers-clock",
+          MonteCarlo: "monte-carlo",
+          Pyramid: "pyramid",
+          RussianSolitaire: "russian-solitaire",
+          Scorpion: "scorpion",
+          Spider: "spider",
+          Spider1S: "spider1s",
+          Spider2S: "spider2s",
+          Spiderette: "spiderette",
+          TriTowers: "tri-towers",
+          WillOTheWisp: "will-o-the-wisp",
+          Yukon: "yukon"
+        };
+        var liId = idMap[name];
+        if (!liId) return null;
+        var li = document.getElementById(liId);
+        if (!li) return null;
+        var desc = li.querySelector(".description");
+        if (!desc) return null;
+        var clone = desc.cloneNode(true);
+        var layout = clone.querySelector(".layout");
+        if (layout) layout.remove();
+        var playBtn = clone.querySelector("button.choose");
+        if (playBtn) playBtn.remove();
+        // Make description visible in overlay (chooser CSS hides unselected)
+        clone.style.display = "block";
+        return clone.innerHTML;
+      } catch (e) {
+        return null;
+      }
     },
 
     hideRules: function () {
@@ -705,17 +825,36 @@
       render();
     },
 
+    _toastQueue: [],
+    _toastShowing: false,
+
     _showToast: function (msg, kind) {
+      this._toastQueue.push({ msg: msg, kind: kind || "" });
+      this._drainToastQueue();
+    },
+
+    _drainToastQueue: function () {
+      if (this._toastShowing) return;
+      var next = this._toastQueue.shift();
+      if (!next) return;
+      this._toastShowing = true;
       var existing = document.getElementById("dc-toast");
       if (existing) existing.remove();
       var toast = document.createElement("div");
       toast.id = "dc-toast";
-      toast.className = "dc-toast" + (kind ? " dc-toast--" + kind : "");
-      toast.textContent = msg;
+      toast.className = "dc-toast" + (next.kind ? " dc-toast--" + next.kind : "");
+      toast.setAttribute("role", "status");
+      toast.setAttribute("aria-live", "polite");
+      toast.textContent = next.msg;
       document.body.appendChild(toast);
       clearTimeout(this._toastTimeout);
-      var hold = kind === "win" || kind === "suit" ? 2800 : 2000;
-      this._toastTimeout = setTimeout(function () { toast.remove(); }, hold);
+      var hold = next.kind === "win" || next.kind === "suit" ? 2400 : 1800;
+      var self = this;
+      this._toastTimeout = setTimeout(function () {
+        toast.remove();
+        self._toastShowing = false;
+        self._drainToastQueue();
+      }, hold);
     }
   };
 

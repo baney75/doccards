@@ -368,7 +368,8 @@ define([], function () {
                         dragConfig: {
                             dragMode: "intersect",
                             groups: ["open"],
-                            clickPixelThresh: 0,
+                            clickPixelThresh: 14,
+                            clickTimeThresh: 220,
                         },
                         container: Solitaire.selector,
                         nodes: ".card",
@@ -748,6 +749,10 @@ define([], function () {
                     if (card && card.stack && card.stack.field === "deck") {
                         return;
                     }
+                    // Face-down tableau flips are also click→turnOver; don't punish wobble-drags.
+                    if (card && card.isFaceDown) {
+                        return;
+                    }
 
                     if (typeof DCSound !== "undefined") {
                         DCSound.error();
@@ -981,7 +986,14 @@ define([], function () {
                     this.setImageSrc();
 
                     undo || Solitaire.pushMove({ card: this, faceDown: false });
-                    if (!undo && wasDown && typeof DCSound !== "undefined" && DCSound.cardFlip) {
+                    // Only chirp for deliberate user flips (turnOver), not deal/stock cascades.
+                    if (
+                        !undo &&
+                        wasDown &&
+                        Solitaire._userFlip &&
+                        typeof DCSound !== "undefined" &&
+                        DCSound.cardFlip
+                    ) {
                         DCSound.cardFlip();
                     }
 
@@ -1045,7 +1057,9 @@ define([], function () {
                     if (stack.field === "deck") {
                         Game.turnOver();
                     } else if (this.isFree()) {
+                        Solitaire._userFlip = true;
                         this.faceUp();
+                        Solitaire._userFlip = false;
                     }
 
                     e.stopPropagation();
@@ -1067,6 +1081,7 @@ define([], function () {
                             this.moveTo(foundation);
                             origin.updateCardsPosition();
                             origin.update();
+                            Y.fire("foundation:afterPush", foundation);
 
                             Solitaire.endTurn();
                             return true;

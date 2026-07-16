@@ -93,6 +93,25 @@ requirejs.config({
         window.addEventListener('load', function () {
             var refreshing = false;
             var hadController = !!navigator.serviceWorker.controller;
+            var pendingUpdate = null;
+
+            function offerUpdate(worker) {
+                pendingUpdate = worker;
+                if (typeof DCUI !== 'undefined' && DCUI._showToast) {
+                    DCUI._showToast('Update ready — tap here to refresh', 'praise');
+                    var toast = document.getElementById('dc-toast');
+                    if (toast) {
+                        toast.style.cursor = 'pointer';
+                        toast.addEventListener('click', function () {
+                            if (pendingUpdate && pendingUpdate.postMessage) {
+                                pendingUpdate.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                            window.location.reload();
+                        }, { once: true });
+                    }
+                }
+            }
+
             navigator.serviceWorker.addEventListener('controllerchange', function () {
                 if (refreshing) return;
                 // First install: SW takes control — do not reload (causes double boot).
@@ -100,13 +119,17 @@ requirejs.config({
                     hadController = true;
                     return;
                 }
+                // Mid-game: only reload if user opted in via toast, or no moves yet.
+                var moves = (typeof DCUI !== 'undefined' && DCUI._moveCount) || 0;
+                if (moves > 0 && !window.__dcForceUpdate) {
+                    offerUpdate(navigator.serviceWorker.controller);
+                    return;
+                }
                 refreshing = true;
-                // Auto-apply updates in installed PWAs (critical on iOS standalone).
                 window.location.reload();
             });
             navigator.serviceWorker.register('./sw.js', { scope: './' }).then(function (reg) {
                 Logger.info('sw_registered', { scope: reg.scope });
-                // Check for updates when the app becomes visible again.
                 document.addEventListener('visibilitychange', function () {
                     if (document.visibilityState === 'visible' && reg.update) {
                         reg.update();
@@ -115,6 +138,21 @@ requirejs.config({
                 setInterval(function () {
                     if (reg.update) reg.update();
                 }, 60 * 60 * 1000);
+                reg.addEventListener('updatefound', function () {
+                    var newWorker = reg.installing;
+                    if (!newWorker) return;
+                    newWorker.addEventListener('statechange', function () {
+                        if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                            var moves = (typeof DCUI !== 'undefined' && DCUI._moveCount) || 0;
+                            if (moves > 0) {
+                                offerUpdate(newWorker);
+                            } else if (newWorker.postMessage) {
+                                window.__dcForceUpdate = true;
+                                newWorker.postMessage({ type: 'SKIP_WAITING' });
+                            }
+                        }
+                    });
+                });
             }).catch(function (err) {
                 Logger.error('sw_register_failed', { error: err.message });
             });
