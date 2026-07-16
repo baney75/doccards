@@ -1,6 +1,6 @@
-var CACHE_NAME = 'doccards-v17';
-// Warm sharp decks first; skip tiny 61 (too soft on retina).
-var CARD_SIZES = [95, 122, 244];
+var CACHE_NAME = 'doccards-v18';
+// Include every size pickThemeSize() may choose (79 on small non-retina).
+var CARD_SIZES = [79, 95, 122, 244];
 var SUITS = ['s', 'h', 'c', 'd'];
 var RANKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
@@ -132,7 +132,16 @@ self.addEventListener('install', function (event) {
     caches.open(CACHE_NAME).then(function (cache) {
       return cache.addAll(PRECACHE_URLS).then(function () {
         self.skipWaiting();
-        warmCardsInBackground();
+        // Warm default sharp deck before install finishes so offline
+        // opens are not empty placeholders; other sizes continue in background.
+        var priority = cardImagesForSize(122);
+        return Promise.allSettled(
+          priority.map(function (url) {
+            return cacheFile(cache, url);
+          })
+        ).then(function () {
+          warmCardsInBackground();
+        });
       });
     })
   );
