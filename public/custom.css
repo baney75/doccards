@@ -547,6 +547,32 @@ body {
   background: rgba(156, 30, 30, 0.08);
 }
 
+/* Short menu labels on phones so all four actions fit without scrolling */
+.menu-short { display: none; }
+.menu-long { display: inline; }
+
+@media (max-width: 520px) {
+  .menu-short { display: inline; }
+  .menu-long { display: none; }
+
+  #menu {
+    justify-content: space-evenly;
+  }
+
+  #menu li {
+    flex: 1 1 0;
+    justify-content: center;
+    border-right: none !important;
+  }
+
+  #menu a {
+    justify-content: center;
+    width: 100%;
+    padding: 0 6px !important;
+    font-size: 13px !important;
+  }
+}
+
 /* HUD in navy header — must be light/gold, not parchment dark */
 #dc-hud {
   position: static !important;
