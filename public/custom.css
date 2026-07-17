@@ -1690,7 +1690,7 @@ img.stack {
 
   #dc-fab-bar {
     gap: 4px;
-    bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(40px + env(safe-area-inset-bottom, 0px));
   }
 
   #dc-fab-bar #rules-btn,
@@ -1706,7 +1706,12 @@ img.stack {
   }
 
   #dc-fab-bar .fab-label { display: none !important; }
-  .deal-display { left: 4px; font-size: 0.7rem; bottom: calc(6px + env(safe-area-inset-bottom, 0px)); max-width: 28vw; }
+  .deal-display {
+    left: 4px;
+    font-size: 0.7rem;
+    bottom: calc(40px + env(safe-area-inset-bottom, 0px));
+    max-width: 30vw;
+  }
 }
 
 /* FAB labels, difficulty, coach, confirm, invalid nudge */
