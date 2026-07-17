@@ -51,8 +51,8 @@ define(["./solitaire"], function (solitaire) {
             const css = {
                     position: "absolute",
                     display: "none",
-                    backgroundColor: "#000",
-                    opacity: 0.7,
+                    backgroundColor: "#0D2240",
+                    opacity: 0.55,
                     top: 0,
                     left: 0,
                     width: 0,
@@ -177,6 +177,9 @@ define(["./solitaire"], function (solitaire) {
                 this._lastTouchSelect = null;
                 Y.one("#game-chooser").addClass("show");
                 Y.one(".solitairey_body").addClass("scrollable");
+                try {
+                    window.scrollTo(0, 0);
+                } catch (e) {}
             },
 
             hide: function () {
@@ -187,6 +190,11 @@ define(["./solitaire"], function (solitaire) {
                 Y.one("#game-chooser").removeClass("show");
                 Y.fire("gamechooser:hide", this);
                 Y.one(".solitairey_body").removeClass("scrollable");
+                try {
+                    window.scrollTo(0, 0);
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
+                } catch (e) {}
             },
 
             choose: function () {
@@ -482,8 +490,21 @@ define(["./solitaire"], function (solitaire) {
                     if (loading) {
                         loading.addClass("hidden");
                     }
+                    const boot = document.getElementById("dc-boot");
+                    if (boot) {
+                        boot.setAttribute("aria-busy", "false");
+                        const status = boot.querySelector(".dc-boot-status");
+                        if (status) status.textContent = "Ready";
+                        boot.classList.add("dc-boot-done");
+                        setTimeout(function () {
+                            if (boot.parentNode) boot.parentNode.removeChild(boot);
+                        }, 320);
+                    }
                     callback();
                     Fade.hide();
+                    try {
+                        window.scrollTo(0, 0);
+                    } catch (e) {}
                 }
             },
 
@@ -545,10 +566,11 @@ define(["./solitaire"], function (solitaire) {
                     });
                 }
 
+                // Boot overlay (#dc-boot) is the branded loading UI.
                 Fade.show();
                 const loading = Y.one(".loading");
                 if (loading) {
-                    loading.removeClass("hidden");
+                    loading.addClass("hidden");
                 }
             },
         };
@@ -612,10 +634,12 @@ define(["./solitaire"], function (solitaire) {
             Y = YUI;
             window.Y = Y;
             if (Y.Solitaire) {
-                Y.Solitaire.offset = Y.Solitaire.offset || { left: 50, top: 70 };
-                Y.Solitaire.offset.top = 110;
-                Y.Solitaire.padding = Y.Solitaire.padding || { x: 50, y: 50 };
-                Y.Solitaire.padding.y = 110;
+                Y.Solitaire.offset = Y.Solitaire.offset || { left: 40, top: 70 };
+                // Layout origin below header+menu (do NOT also put this in padding.y).
+                Y.Solitaire.offset.top = 108;
+                Y.Solitaire.padding = Y.Solitaire.padding || { x: 40, y: 50 };
+                // Bottom chrome only (FABs / footer) — not another header clearance.
+                Y.Solitaire.padding.y = 72;
             }
             exportAPI();
             Y.on("domready", _my_load_func);
@@ -625,14 +649,11 @@ define(["./solitaire"], function (solitaire) {
             const game = active.game;
             const el = game.container();
             var padding = { x: Y.Solitaire.padding.x, y: Y.Solitaire.padding.y };
-            var footerEl = document.getElementById('site-footer');
-            if (footerEl && footerEl.offsetParent !== null) {
-              padding.y = Math.max(padding.y, footerEl.offsetHeight);
-            }
-            // Reserve space for bottom FABs on phones
-            if (window.matchMedia && window.matchMedia('(max-width: 480px)').matches) {
-              padding.y = Math.max(padding.y, 72);
-            }
+            var footerEl = document.getElementById("site-footer");
+            var footerVisible = footerEl && footerEl.offsetParent !== null;
+            // Bottom reserve: FAB bar (~56) + optional footer (~40)
+            var bottomChrome = footerVisible ? 96 : 68;
+            padding.y = Math.max(padding.y, bottomChrome);
             var offset = Y.Solitaire.offset;
             var width = el.get("winWidth") - padding.x;
             var height = el.get("winHeight") - padding.y;
@@ -645,6 +666,9 @@ define(["./solitaire"], function (solitaire) {
 
             active.game.resize(ratio);
             GameChooser.refit();
+            try {
+                window.scrollTo(0, 0);
+            } catch (e) {}
         }
 
         function clearDOM() {

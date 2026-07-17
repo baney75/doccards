@@ -1,4 +1,4 @@
-var CACHE_NAME = 'doccards-v21';
+var CACHE_NAME = 'doccards-v22';
 // Include every size pickThemeSize() may choose (79 on small non-retina).
 var CARD_SIZES = [79, 95, 122, 244];
 var SUITS = ['s', 'h', 'c', 'd'];
@@ -51,6 +51,7 @@ var PRECACHE_URLS = [
   asset('/loading.gif'),
   asset('/trans.gif'),
   asset('/favicon.svg'),
+  asset('/favicon-32.png'),
   asset('/manifest.json'),
   asset('/apple-touch-icon-180.png'),
   asset('/apple-touch-icon-167.png'),
