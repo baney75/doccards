@@ -26,8 +26,10 @@ small changes, and Grandpa being able to play it.
 - **Playability** — Grandpa can read every card. Touch targets are 44px.
   Nothing obscures the felt on a phone.
 - **No regressions** — a fix in one game doesn't break the others.
-- **No asset creep** — keep it zero-build, no audio files, no font files,
-  no image files. The brand logo and the felt are the only static assets.
+- **No asset creep** — keep it zero-build and no audio files. Prefer the
+  existing self-hosted fonts and card bitmaps. Brand source photo is
+  `brand-logo.jpg`; shipped UI mark is `brand-mark.webp` (regenerate icons
+  from the source, don't invent a new mark).
 - **Honest commits** — `feat:`, `fix:`, `refactor:`, `docs:`, `chore:`.
 
 ## What we don't want
