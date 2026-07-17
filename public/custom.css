@@ -1679,15 +1679,19 @@ img.stack {
 
   #dc-fab-bar .fab-label { display: none !important; }
 
-  /* Lift deal chip above the FAB row so they never collide on ~375px */
+  /* Lift deal chip above the FAB row; keep it short so it never covers FABs */
   .deal-display {
     left: 8px;
     right: auto;
-    max-width: calc(100vw - 24px);
-    font-size: 0.72rem;
+    max-width: min(46vw, 168px);
+    font-size: 0.7rem;
     padding: 6px 8px;
     bottom: calc(58px + env(safe-area-inset-bottom, 0px));
     z-index: 9001;
+  }
+
+  .deal-display .deal-label {
+    display: none;
   }
 
   /* Undo must stay easy to hit — emphasize in the menu strip */
