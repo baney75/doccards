@@ -649,14 +649,27 @@ define(["./solitaire"], function (solitaire) {
             const game = active.game;
             const el = game.container();
             var padding = { x: Y.Solitaire.padding.x, y: Y.Solitaire.padding.y };
+            var offset = {
+                left: Y.Solitaire.offset.left,
+                top: Y.Solitaire.offset.top,
+            };
+            var winW = el.get("winWidth");
+            var winH = el.get("winHeight");
             var footerEl = document.getElementById("site-footer");
             var footerVisible = footerEl && footerEl.offsetParent !== null;
             // Bottom reserve: FAB bar (~56) + optional footer (~40)
             var bottomChrome = footerVisible ? 96 : 68;
             padding.y = Math.max(padding.y, bottomChrome);
-            var offset = Y.Solitaire.offset;
-            var width = el.get("winWidth") - padding.x;
-            var height = el.get("winHeight") - padding.y;
+            // Narrow phones: tighten side gutters so cards can scale larger
+            // and fill more of the felt (less empty green void).
+            if (winW < 520) {
+                padding.x = 12;
+                offset.left = 10;
+                Y.Solitaire.offset.left = 10;
+                Y.Solitaire.padding.x = 12;
+            }
+            var width = winW - padding.x;
+            var height = winH - padding.y;
 
             Y.Solitaire.Application.windowHeight = height;
             var ratio = Math.min(
