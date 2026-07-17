@@ -660,13 +660,12 @@ define(["./solitaire"], function (solitaire) {
             // Bottom reserve: FAB bar (~56) + optional footer (~40)
             var bottomChrome = footerVisible ? 96 : 68;
             padding.y = Math.max(padding.y, bottomChrome);
-            // Narrow phones: tighten side gutters so cards can scale larger
-            // and fill more of the felt (less empty green void).
+            // Narrow phones: tighten side gutters so all columns fit.
             if (winW < 520) {
-                padding.x = 12;
-                offset.left = 10;
-                Y.Solitaire.offset.left = 10;
-                Y.Solitaire.padding.x = 12;
+                padding.x = 8;
+                offset.left = 8;
+                Y.Solitaire.offset.left = 8;
+                Y.Solitaire.padding.x = 8;
             }
             var width = winW - padding.x;
             var height = winH - padding.y;
@@ -676,6 +675,11 @@ define(["./solitaire"], function (solitaire) {
                 (width - offset.left) / game.width(),
                 (height - offset.top) / game.height(),
             );
+            // Small safety margin so the rightmost column isn't clipped
+            // by rounded device bezels / subpixel rounding.
+            if (winW < 520 && ratio > 0 && Number.isFinite(ratio)) {
+                ratio *= 0.96;
+            }
 
             active.game.resize(ratio);
             GameChooser.refit();
