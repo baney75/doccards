@@ -2433,9 +2433,17 @@ body.dc-mode-woodblock.solitairey_body {
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
-  padding: 8px 12px 16px;
-  --wb-cell: max(44px, min(10vw, 52px));
+  gap: 8px;
+  padding: 6px 10px 12px;
+  --wb-cell: max(26px, min(calc((100vw - 56px) / 10), 34px));
+}
+
+.dc-wb-hint {
+  font-size: 0.72rem;
+  color: rgba(248, 241, 227, 0.72);
+  text-align: center;
+  margin: 0;
+  letter-spacing: 0.02em;
 }
 
 .dc-wb-top {
@@ -2476,32 +2484,53 @@ body.dc-mode-woodblock.solitairey_body {
 
 .dc-wb-board-wrap {
   flex: 0 0 auto;
-  padding: 10px;
-  background: rgba(13, 34, 64, 0.55);
-  border-radius: 16px;
-  border: 2px solid rgba(201, 169, 97, 0.45);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  padding: 8px;
+  background:
+    linear-gradient(145deg, #3d2817 0%, #2a1a0e 48%, #1f140a 100%);
+  border-radius: 14px;
+  border: 2px solid rgba(139, 105, 20, 0.55);
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 220, 170, 0.12),
+    inset 0 -4px 12px rgba(0, 0, 0, 0.35);
 }
 
 .dc-wb-board {
   display: grid;
-  grid-template-columns: repeat(8, var(--wb-cell));
-  grid-template-rows: repeat(8, var(--wb-cell));
-  gap: 3px;
-  width: calc(var(--wb-cell) * 8 + 3px * 7);
-  height: calc(var(--wb-cell) * 8 + 3px * 7);
+  grid-template-columns: repeat(10, var(--wb-cell));
+  grid-template-rows: repeat(10, var(--wb-cell));
+  gap: 2px;
+  width: calc(var(--wb-cell) * 10 + 2px * 9);
+  height: calc(var(--wb-cell) * 10 + 2px * 9);
+  background: rgba(0, 0, 0, 0.22);
+  border-radius: 8px;
+  padding: 2px;
 }
 
 .dc-wb-cell {
-  border-radius: 6px;
-  background: rgba(248, 241, 227, 0.08);
-  border: 1px solid rgba(201, 169, 97, 0.15);
+  border-radius: 4px;
+  background: rgba(62, 42, 24, 0.65);
+  border: 1px solid rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
   transition: background 0.12s ease, transform 0.12s ease, box-shadow 0.12s ease;
 }
 
+.wood-block,
+.dc-wb-cell.filled.wood-block {
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--wb-block, #C9A66B) 88%, #fff 12%) 0%,
+      var(--wb-block, #C9A66B) 42%,
+      color-mix(in srgb, var(--wb-block, #8B6914) 85%, #000 15%) 100%) !important;
+  border: 1px solid color-mix(in srgb, var(--wb-block, #8B6914) 70%, #000 30%);
+  box-shadow:
+    inset 0 2px 0 rgba(255, 255, 255, 0.35),
+    inset 0 -3px 0 rgba(0, 0, 0, 0.28),
+    0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
 .dc-wb-cell.filled {
-  border-color: rgba(0, 0, 0, 0.15);
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  border-color: rgba(0, 0, 0, 0.2);
 }
 
 .dc-wb-cell.preview-ok {
@@ -2525,25 +2554,28 @@ body.dc-mode-woodblock.solitairey_body {
 
 .dc-wb-tray {
   display: flex;
-  gap: 14px;
+  gap: 12px;
   justify-content: center;
   align-items: center;
   width: 100%;
-  max-width: 420px;
-  min-height: 100px;
-  padding: 8px 0;
+  max-width: min(100%, calc(var(--wb-cell) * 10 + 40px));
+  min-height: 96px;
+  padding: 10px 6px;
+  background: rgba(42, 26, 14, 0.55);
+  border-radius: 14px;
+  border: 1px solid rgba(139, 105, 20, 0.35);
 }
 
 .dc-wb-tray-slot {
   flex: 1;
-  max-width: 120px;
+  max-width: 130px;
   min-height: 88px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(13, 34, 64, 0.35);
-  border-radius: 12px;
-  border: 1px dashed rgba(201, 169, 97, 0.35);
+  background: rgba(30, 18, 10, 0.45);
+  border-radius: 10px;
+  border: 1px dashed rgba(201, 169, 97, 0.28);
   touch-action: none;
   cursor: grab;
 }
@@ -2576,25 +2608,36 @@ body.dc-mode-woodblock.solitairey_body {
   box-shadow: inset 0 -1px 0 rgba(0, 0, 0, 0.15);
 }
 
+.dc-wb-mini-cell.on.wood-block {
+  background: var(--wb-block, #C9A66B);
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
 .dc-wb-ghost {
   position: fixed;
   z-index: 12000;
   pointer-events: none;
   transform: translate(-50%, -50%);
   display: grid;
-  gap: 3px;
-  opacity: 0.92;
-  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
+  gap: 2px;
+  opacity: 0.94;
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.45));
 }
 
 .dc-wb-ghost-cell {
   width: var(--wb-cell);
   height: var(--wb-cell);
-  border-radius: 6px;
+  border-radius: 4px;
 }
 
-.dc-wb-ghost-cell.on {
-  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18);
+.dc-wb-ghost-cell.on.wood-block {
+  background:
+    linear-gradient(145deg,
+      color-mix(in srgb, var(--wb-block, #C9A66B) 88%, #fff 12%) 0%,
+      var(--wb-block, #C9A66B) 50%,
+      color-mix(in srgb, var(--wb-block, #8B6914) 85%, #000 15%) 100%);
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.3), inset 0 -2px 0 rgba(0, 0, 0, 0.25);
 }
 
 .dc-wb-over {
@@ -2639,7 +2682,7 @@ body.dc-mode-woodblock.solitairey_body {
 
 @media (min-width: 768px) {
   .dc-wb-shell {
-    --wb-cell: 44px;
+    --wb-cell: 34px;
   }
 }
 

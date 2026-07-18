@@ -162,7 +162,7 @@
       this._setTab(MODES.woodblock);
       this._setChooserPanel(MODES.woodblock);
       if (fromUser && typeof DCUI !== "undefined" && DCUI._showToast) {
-        DCUI._showToast("Wood Block — fill the grid!", "deal");
+        DCUI._showToast("Wood Block — drag blocks onto the 10×10 grid!", "deal");
       }
     },
 
@@ -263,7 +263,7 @@
           '<div class="dc-wb-chooser">' +
           '<img src="pwa-maskable-512.png" alt="" class="dc-wb-chooser-mark" width="72" height="72" />' +
           '<h3>Wood Block</h3>' +
-          '<p class="dc-wb-chooser-tag">Place blocks · clear lines · beat your best</p>' +
+          '<p class="dc-wb-chooser-tag">10×10 board · drag wooden blocks · clear full lines</p>' +
           '<button type="button" class="doccards-btn dc-wb-play-btn" id="dc-wb-launch">Play</button>' +
           "</div>";
         contents.appendChild(wbPanel);

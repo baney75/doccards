@@ -1,30 +1,48 @@
 (function (root) {
   "use strict";
 
-  var GRID = 8;
+  // Classic Wood Block Puzzle (woodblockpuzzle.com / 1010! style): 10×10 grid,
+  // three polyomino pieces, drag onto board, clear full rows/columns, no rotation.
+  var GRID = 10;
   var BEST_KEY = "doccards_woodblock_best";
   var SCORE_KEY = "doccards_woodblock_last";
 
-  var SHAPES = [
-    { id: "1", cells: [[0, 0]], color: "#C9A961" },
-    { id: "2h", cells: [[0, 0], [0, 1]], color: "#E8D5A3" },
-    { id: "2v", cells: [[0, 0], [1, 0]], color: "#E8D5A3" },
-    { id: "3h", cells: [[0, 0], [0, 1], [0, 2]], color: "#0F5C2F" },
-    { id: "3v", cells: [[0, 0], [1, 0], [2, 0]], color: "#0F5C2F" },
-    { id: "4h", cells: [[0, 0], [0, 1], [0, 2], [0, 3]], color: "#0D2240" },
-    { id: "4v", cells: [[0, 0], [1, 0], [2, 0], [3, 0]], color: "#0D2240" },
-    { id: "5h", cells: [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]], color: "#0D2240" },
-    { id: "sq", cells: [[0, 0], [0, 1], [1, 0], [1, 1]], color: "#9C1E1E" },
-    { id: "sq3", cells: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]], color: "#7a1616" },
-    { id: "L", cells: [[0, 0], [1, 0], [2, 0], [2, 1]], color: "#C9A961" },
-    { id: "L2", cells: [[0, 1], [1, 1], [2, 0], [2, 1]], color: "#C9A961" },
-    { id: "L3", cells: [[0, 0], [0, 1], [1, 0], [2, 0]], color: "#C9A961" },
-    { id: "L4", cells: [[0, 0], [0, 1], [1, 1], [2, 1]], color: "#C9A961" },
-    { id: "T", cells: [[0, 0], [0, 1], [0, 2], [1, 1]], color: "#0F5C2F" },
-    { id: "T2", cells: [[0, 1], [1, 0], [1, 1], [1, 2]], color: "#0F5C2F" },
-    { id: "Z", cells: [[0, 0], [0, 1], [1, 1], [1, 2]], color: "#0D2240" },
-    { id: "S", cells: [[0, 1], [0, 2], [1, 0], [1, 1]], color: "#0D2240" }
+  var WOOD_TONES = [
+    "#C9A66B", "#B8894A", "#A67C52", "#8B6914",
+    "#9C7A4A", "#D4A574", "#7A5230", "#BC8F5E",
+    "#CD853F", "#DEB887"
   ];
+
+  var SHAPES = [
+    { id: "1", cells: [[0, 0]] },
+    { id: "2h", cells: [[0, 0], [0, 1]] },
+    { id: "2v", cells: [[0, 0], [1, 0]] },
+    { id: "3h", cells: [[0, 0], [0, 1], [0, 2]] },
+    { id: "3v", cells: [[0, 0], [1, 0], [2, 0]] },
+    { id: "4h", cells: [[0, 0], [0, 1], [0, 2], [0, 3]] },
+    { id: "4v", cells: [[0, 0], [1, 0], [2, 0], [3, 0]] },
+    { id: "5h", cells: [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]] },
+    { id: "5v", cells: [[0, 0], [1, 0], [2, 0], [3, 0], [4, 0]] },
+    { id: "sq", cells: [[0, 0], [0, 1], [1, 0], [1, 1]] },
+    { id: "sq3", cells: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]] },
+    { id: "L", cells: [[0, 0], [1, 0], [2, 0], [2, 1]] },
+    { id: "L2", cells: [[0, 1], [1, 1], [2, 0], [2, 1]] },
+    { id: "L3", cells: [[0, 0], [0, 1], [1, 0], [2, 0]] },
+    { id: "L4", cells: [[0, 0], [0, 1], [1, 1], [2, 1]] },
+    { id: "T", cells: [[0, 0], [0, 1], [0, 2], [1, 1]] },
+    { id: "T2", cells: [[0, 1], [1, 0], [1, 1], [1, 2]] },
+    { id: "Z", cells: [[0, 0], [0, 1], [1, 1], [1, 2]] },
+    { id: "S", cells: [[0, 1], [0, 2], [1, 0], [1, 1]] }
+  ];
+
+  // Weighted pool — large pieces appear less often (classic feel).
+  var SHAPE_WEIGHTS = {
+    "1": 4, "2h": 5, "2v": 5, "3h": 4, "3v": 4,
+    "4h": 3, "4v": 3, "5h": 1, "5v": 1,
+    "sq": 4, "sq3": 1,
+    "L": 3, "L2": 3, "L3": 3, "L4": 3,
+    "T": 3, "T2": 3, "Z": 3, "S": 3
+  };
 
   function cloneGrid(g) {
     return g.map(function (row) { return row.slice(); });
@@ -39,8 +57,56 @@
     return g;
   }
 
+  function shapeBounds(shape) {
+    var minR = 999;
+    var minC = 999;
+    var maxR = 0;
+    var maxC = 0;
+    var i;
+    for (i = 0; i < shape.cells.length; i++) {
+      var r = shape.cells[i][0];
+      var c = shape.cells[i][1];
+      if (r < minR) minR = r;
+      if (c < minC) minC = c;
+      if (r > maxR) maxR = r;
+      if (c > maxC) maxC = c;
+    }
+    return {
+      minR: minR,
+      minC: minC,
+      maxR: maxR,
+      maxC: maxC,
+      rows: maxR - minR + 1,
+      cols: maxC - minC + 1,
+      anchorR: (minR + maxR) / 2,
+      anchorC: (minC + maxC) / 2
+    };
+  }
+
+  function randomWoodColor() {
+    return WOOD_TONES[Math.floor(Math.random() * WOOD_TONES.length)];
+  }
+
   function randomShape() {
-    return SHAPES[Math.floor(Math.random() * SHAPES.length)];
+    var total = 0;
+    var i;
+    for (i = 0; i < SHAPES.length; i++) {
+      total += SHAPE_WEIGHTS[SHAPES[i].id] || 1;
+    }
+    var pick = Math.random() * total;
+    for (i = 0; i < SHAPES.length; i++) {
+      pick -= SHAPE_WEIGHTS[SHAPES[i].id] || 1;
+      if (pick <= 0) {
+        var base = SHAPES[i];
+        return {
+          id: base.id,
+          cells: base.cells,
+          color: randomWoodColor()
+        };
+      }
+    }
+    var fallback = SHAPES[0];
+    return { id: fallback.id, cells: fallback.cells, color: randomWoodColor() };
   }
 
   function canPlace(grid, shape, row, col) {
@@ -120,8 +186,22 @@
     return true;
   }
 
+  function originFromCenter(shape, anchorR, anchorC) {
+    var b = shapeBounds(shape);
+    return {
+      row: Math.round(anchorR - b.anchorR),
+      col: Math.round(anchorC - b.anchorC)
+    };
+  }
+
+  function originFromTopLeft(shape, row, col) {
+    var b = shapeBounds(shape);
+    return { row: row - b.minR, col: col - b.minC };
+  }
+
   var WB = {
     _mounted: false,
+    _shellBuilt: false,
     _paused: false,
     _root: null,
     _grid: null,
@@ -132,17 +212,22 @@
     _drag: null,
     _ghost: null,
     _selectedIndex: null,
+    _suppressClick: false,
 
     mount: function (rootEl) {
       if (!rootEl) return;
       this._root = rootEl;
-      if (this._mounted) {
-        this._render();
+      if (!this._mounted) {
+        this._mounted = true;
+        this._best = this._loadBest();
+        this.newGame();
         return;
       }
-      this._mounted = true;
-      this._best = this._loadBest();
-      this.newGame();
+      if (!this._shellBuilt) {
+        this._buildShell();
+      }
+      this._paintBoard();
+      this._paintTray();
     },
 
     pause: function () {
@@ -151,7 +236,11 @@
 
     resume: function () {
       this._paused = false;
-      if (this._mounted) this._render();
+      if (this._mounted && this._root) {
+        if (!this._shellBuilt) this._buildShell();
+        this._paintBoard();
+        this._paintTray();
+      }
     },
 
     newGame: function () {
@@ -159,7 +248,13 @@
       this._score = 0;
       this._combo = 0;
       this._tray = [randomShape(), randomShape(), randomShape()];
-      this._render();
+      this._selectedIndex = null;
+      if (this._root) {
+        if (!this._shellBuilt) this._buildShell();
+        this._paintBoard();
+        this._paintTray();
+        this._updateScore(true);
+      }
       if (typeof DCSound !== "undefined" && DCSound.deal) DCSound.deal();
     },
 
@@ -176,7 +271,7 @@
       } catch (e) {}
     },
 
-    _render: function () {
+    _buildShell: function () {
       if (!this._root || this._paused) return;
       var self = this;
       this._root.innerHTML =
@@ -187,11 +282,12 @@
         '<button type="button" class="doccards-btn doccards-btn-secondary dc-wb-games" id="dc-wb-games">Games</button>' +
         '<button type="button" class="doccards-btn doccards-btn-secondary dc-wb-new" id="dc-wb-new">New</button>' +
         "</div>" +
-        '<div class="dc-wb-board-wrap"><div class="dc-wb-board" id="dc-wb-board" role="grid" aria-label="Wood block grid"></div></div>' +
-        '<div class="dc-wb-tray" id="dc-wb-tray" role="group" aria-label="Block pieces"></div>' +
+        '<p class="dc-wb-hint">Drag wooden blocks onto the 10×10 board · clear full lines</p>' +
+        '<div class="dc-wb-board-wrap"><div class="dc-wb-board" id="dc-wb-board" role="grid" aria-label="10 by 10 wood block grid"></div></div>' +
+        '<div class="dc-wb-tray" id="dc-wb-tray" role="group" aria-label="Three block pieces"></div>' +
         '<div class="dc-wb-over hidden" id="dc-wb-over" role="dialog" aria-modal="true" aria-labelledby="dc-wb-over-title">' +
         '<div class="dc-wb-over-card">' +
-        '<p class="dc-wb-over-title" id="dc-wb-over-title">Beautiful run!</p>' +
+        '<p class="dc-wb-over-title" id="dc-wb-over-title">No room left!</p>' +
         '<p class="dc-wb-over-score">Score <strong id="dc-wb-over-score">0</strong></p>' +
         '<button type="button" class="doccards-btn" id="dc-wb-retry">Play again</button>' +
         "</div></div>" +
@@ -213,8 +309,7 @@
         document.getElementById("dc-wb-over").classList.add("hidden");
         self.newGame();
       });
-      this._paintBoard();
-      this._paintTray();
+      this._shellBuilt = true;
       this._bindBoardTap();
     },
 
@@ -224,25 +319,33 @@
       board._dcTapBound = true;
       var self = this;
       board.addEventListener("click", function (e) {
-        self._handleBoardTap(e.target);
+        if (self._suppressClick) {
+          self._suppressClick = false;
+          return;
+        }
+        self._handleBoardTap(e.target, false);
       });
       board.addEventListener("touchend", function (e) {
+        if (self._drag) return;
         if (!e.changedTouches || !e.changedTouches[0]) return;
         var t = e.changedTouches[0];
         var el = document.elementFromPoint(t.clientX, t.clientY);
-        self._handleBoardTap(el);
+        self._suppressClick = true;
+        self._handleBoardTap(el, false);
       });
     },
 
-    _handleBoardTap: function (target) {
+    _handleBoardTap: function (target, fromDrag) {
       var cell = target && target.closest ? target.closest(".dc-wb-cell") : null;
       if (!cell || this._selectedIndex === null) return;
       var r = parseInt(cell.getAttribute("data-r"), 10);
       var c = parseInt(cell.getAttribute("data-c"), 10);
       if (isNaN(r) || isNaN(c)) return;
-      var rect = cell.getBoundingClientRect();
-      var ok = this._placeAt(this._selectedIndex, r, c, rect.left + rect.width / 2, rect.top + rect.height / 2);
-      if (!ok && typeof DCUI !== "undefined" && DCUI.invalidMove) DCUI.invalidMove();
+      var shape = this._tray[this._selectedIndex];
+      if (!shape) return;
+      var origin = originFromTopLeft(shape, r, c);
+      var ok = this._placeAt(this._selectedIndex, origin.row, origin.col);
+      if (!ok && !fromDrag && typeof DCUI !== "undefined" && DCUI.invalidMove) DCUI.invalidMove();
     },
 
     _selectTray: function (index) {
@@ -251,9 +354,6 @@
       var i;
       for (i = 0; i < slots.length; i++) {
         slots[i].classList.toggle("selected", parseInt(slots[i].dataset.index, 10) === index);
-      }
-      if (typeof DCUI !== "undefined" && DCUI._showToast) {
-        DCUI._showToast("Tap the board to place", "deal");
       }
     },
 
@@ -266,22 +366,11 @@
       for (r = 0; r < GRID; r++) {
         for (c = 0; c < GRID; c++) {
           var filled = this._grid[r][c];
-          html += '<div class="dc-wb-cell' + (filled ? " filled" : "") + '" data-r="' + r + '" data-c="' + c + '" style="' +
-            (filled ? "background:" + filled + ";" : "") + '"></div>';
+          html += '<div class="dc-wb-cell' + (filled ? " filled wood-block" : "") + '" data-r="' + r + '" data-c="' + c + '"' +
+            (filled ? ' style="--wb-block:' + filled + ';"' : "") + "></div>";
         }
       }
       board.innerHTML = html;
-    },
-
-    _shapeDims: function (shape) {
-      var maxR = 0;
-      var maxC = 0;
-      var i;
-      for (i = 0; i < shape.cells.length; i++) {
-        if (shape.cells[i][0] > maxR) maxR = shape.cells[i][0];
-        if (shape.cells[i][1] > maxC) maxC = shape.cells[i][1];
-      }
-      return { rows: maxR + 1, cols: maxC + 1 };
     },
 
     _paintTray: function () {
@@ -300,7 +389,7 @@
           tray.appendChild(slot);
           continue;
         }
-        var dims = this._shapeDims(shape);
+        var dims = shapeBounds(shape);
         var mini = document.createElement("div");
         mini.className = "dc-wb-mini";
         mini.style.gridTemplateColumns = "repeat(" + dims.cols + ", 1fr)";
@@ -320,8 +409,8 @@
               }
             }
             if (hit) {
-              cell.classList.add("on");
-              cell.style.background = shape.color;
+              cell.classList.add("on", "wood-block");
+              cell.style.setProperty("--wb-block", shape.color);
             }
             mini.appendChild(cell);
           }
@@ -332,42 +421,54 @@
       }
     },
 
+    _makeGhost: function (shape) {
+      var ghost = document.createElement("div");
+      ghost.className = "dc-wb-ghost";
+      ghost.id = "dc-wb-ghost";
+      var dims = shapeBounds(shape);
+      ghost.style.gridTemplateColumns = "repeat(" + dims.cols + ", var(--wb-cell))";
+      ghost.style.gridTemplateRows = "repeat(" + dims.rows + ", var(--wb-cell))";
+      var r;
+      var c;
+      for (r = 0; r < dims.rows; r++) {
+        for (c = 0; c < dims.cols; c++) {
+          var cell = document.createElement("span");
+          cell.className = "dc-wb-ghost-cell";
+          var hit = false;
+          var k;
+          for (k = 0; k < shape.cells.length; k++) {
+            if (shape.cells[k][0] === r && shape.cells[k][1] === c) {
+              hit = true;
+              break;
+            }
+          }
+          if (hit) {
+            cell.classList.add("on", "wood-block");
+            cell.style.setProperty("--wb-block", shape.color);
+          }
+          ghost.appendChild(cell);
+        }
+      }
+      return ghost;
+    },
+
     _bindDrag: function (slot, shape, index) {
       var self = this;
+      var dragThreshold = 12;
+
       var startDrag = function (clientX, clientY) {
         if (self._drag) return;
-        self._drag = { shape: shape, index: index, offsetX: 0, offsetY: 0 };
-        var ghost = document.createElement("div");
-        ghost.className = "dc-wb-ghost";
-        ghost.id = "dc-wb-ghost";
-        var dims = self._shapeDims(shape);
-        ghost.style.gridTemplateColumns = "repeat(" + dims.cols + ", var(--wb-cell))";
-        ghost.style.gridTemplateRows = "repeat(" + dims.rows + ", var(--wb-cell))";
-        var r;
-        var c;
-        for (r = 0; r < dims.rows; r++) {
-          for (c = 0; c < dims.cols; c++) {
-            var cell = document.createElement("span");
-            cell.className = "dc-wb-ghost-cell";
-            var hit = false;
-            var k;
-            for (k = 0; k < shape.cells.length; k++) {
-              if (shape.cells[k][0] === r && shape.cells[k][1] === c) {
-                hit = true;
-                break;
-              }
-            }
-            if (hit) {
-              cell.classList.add("on");
-              cell.style.background = shape.color;
-            }
-            ghost.appendChild(cell);
-          }
-        }
+        self._drag = { shape: shape, index: index };
+        self._selectedIndex = null;
+        var slots = document.querySelectorAll(".dc-wb-tray-slot");
+        var si;
+        for (si = 0; si < slots.length; si++) slots[si].classList.remove("selected");
+
+        var ghost = self._makeGhost(shape);
         document.body.appendChild(ghost);
         var shell = document.querySelector(".dc-wb-shell");
         if (shell) {
-          var cellPx = getComputedStyle(shell).getPropertyValue("--wb-cell").trim() || "44px";
+          var cellPx = getComputedStyle(shell).getPropertyValue("--wb-cell").trim() || "32px";
           ghost.style.setProperty("--wb-cell", cellPx);
         }
         self._ghost = ghost;
@@ -425,7 +526,6 @@
       var touchStartX = 0;
       var touchStartY = 0;
       var touchDragging = false;
-      var dragThreshold = 12;
 
       slot.addEventListener("touchstart", function (e) {
         if (!e.touches || !e.touches[0]) return;
@@ -460,12 +560,6 @@
         }
         touchDragging = false;
       });
-
-      slot.addEventListener("click", function (e) {
-        if (self._drag) return;
-        e.stopPropagation();
-        self._selectTray(index);
-      });
     },
 
     _moveGhost: function (x, y) {
@@ -474,7 +568,7 @@
       this._ghost.style.top = y + "px";
     },
 
-    _boardCellAt: function (clientX, clientY) {
+    _boardPointerCell: function (clientX, clientY) {
       var board = document.getElementById("dc-wb-board");
       if (!board) return null;
       var rect = board.getBoundingClientRect();
@@ -483,8 +577,8 @@
       }
       var cellW = rect.width / GRID;
       var cellH = rect.height / GRID;
-      var c = Math.floor((clientX - rect.left) / cellW);
-      var r = Math.floor((clientY - rect.top) / cellH);
+      var c = (clientX - rect.left) / cellW;
+      var r = (clientY - rect.top) / cellH;
       if (r < 0 || c < 0 || r >= GRID || c >= GRID) return null;
       return { r: r, c: c };
     },
@@ -492,15 +586,16 @@
     _highlightDrop: function (clientX, clientY) {
       this._clearHighlight();
       if (!this._drag) return;
-      var cell = this._boardCellAt(clientX, clientY);
-      if (!cell) return;
-      var ok = canPlace(this._grid, this._drag.shape, cell.r, cell.c);
+      var ptr = this._boardPointerCell(clientX, clientY);
+      if (!ptr) return;
+      var origin = originFromCenter(this._drag.shape, ptr.r + 0.5, ptr.c + 0.5);
+      var ok = canPlace(this._grid, this._drag.shape, origin.row, origin.col);
       var board = document.getElementById("dc-wb-board");
       if (!board) return;
       var i;
       for (i = 0; i < this._drag.shape.cells.length; i++) {
-        var r = cell.r + this._drag.shape.cells[i][0];
-        var c = cell.c + this._drag.shape.cells[i][1];
+        var r = origin.row + this._drag.shape.cells[i][0];
+        var c = origin.col + this._drag.shape.cells[i][1];
         if (r < 0 || c < 0 || r >= GRID || c >= GRID) continue;
         var el = board.querySelector('.dc-wb-cell[data-r="' + r + '"][data-c="' + c + '"]');
         if (el) el.classList.add(ok ? "preview-ok" : "preview-bad");
@@ -517,12 +612,13 @@
 
     _tryDrop: function (clientX, clientY) {
       if (!this._drag) return false;
-      var cell = this._boardCellAt(clientX, clientY);
-      if (!cell) return false;
-      return this._placeAt(this._drag.index, cell.r, cell.c, clientX, clientY);
+      var ptr = this._boardPointerCell(clientX, clientY);
+      if (!ptr) return false;
+      var origin = originFromCenter(this._drag.shape, ptr.r + 0.5, ptr.c + 0.5);
+      return this._placeAt(this._drag.index, origin.row, origin.col);
     },
 
-    _placeAt: function (idx, row, col, clientX, clientY) {
+    _placeAt: function (idx, row, col) {
       var shape = this._tray[idx];
       if (!shape) return false;
       if (!canPlace(this._grid, shape, row, col)) return false;
@@ -535,13 +631,14 @@
       var lines = clears.rows.length + clears.cols.length;
       if (lines > 0) {
         this._combo++;
-        var bonus = lines * 10 + (lines > 1 ? lines * 5 : 0) + this._combo * 2;
-        this._score += bonus;
+        var lineBonus = lines * GRID;
+        if (lines > 1) lineBonus += (lines - 1) * GRID;
+        this._score += lineBonus + this._combo * 3;
         this._grid = applyClears(this._grid, clears);
         if (typeof DCSound !== "undefined" && DCSound.suitClear) DCSound.suitClear();
         if (typeof DCFX !== "undefined" && DCFX.burstConfetti) DCFX.burstConfetti(12 + lines * 8, true);
         if (typeof DCUI !== "undefined" && DCUI._showToast) {
-          var msg = lines === 1 ? "Line clear!" : lines + " lines — gorgeous!";
+          var msg = lines === 1 ? "Line clear!" : lines + " lines — beautiful!";
           DCUI._showToast(msg, "combo");
         }
       } else {
@@ -571,9 +668,9 @@
       var board = document.getElementById("dc-wb-board");
       if (!board) return;
       var i;
+      var j;
       for (i = 0; i < clears.rows.length; i++) {
         var rowCells = board.querySelectorAll('.dc-wb-cell[data-r="' + clears.rows[i] + '"]');
-        var j;
         for (j = 0; j < rowCells.length; j++) rowCells[j].classList.add("clear-flash");
       }
       for (i = 0; i < clears.cols.length; i++) {
@@ -586,13 +683,15 @@
       }, 420);
     },
 
-    _updateScore: function () {
+    _updateScore: function (skipAnim) {
       var el = document.getElementById("dc-wb-score");
       if (el) {
         el.textContent = String(this._score);
-        el.classList.remove("dc-hud-bump");
-        void el.offsetWidth;
-        el.classList.add("dc-hud-bump");
+        if (!skipAnim) {
+          el.classList.remove("dc-hud-bump");
+          void el.offsetWidth;
+          el.classList.add("dc-hud-bump");
+        }
       }
       if (this._score > this._best) {
         this._best = this._score;
