@@ -83,7 +83,8 @@ public/
     application.js    # Solitairey glue: game registry, switch, restart
     all.js            # Bundled YUI 3 + Solitairey engine (do not edit)
     doccards-games.js # Bundled game definitions (do not edit)
-  brand-logo.jpg      # Round Doc's Cards mark
+  brand-logo.jpg      # Source portrait photo (Grandpa)
+  brand-mark.webp     # Shipped circular UI mark (from brand-logo.jpg)
   green.webp          # Felt background
 ```
 

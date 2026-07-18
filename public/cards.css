@@ -12,8 +12,8 @@
   overflow: hidden;
   min-height: 100vh;
   min-height: -webkit-fill-available;
-  min-height: 100dvh;
-  height: auto;
+  height: 100dvh;
+  max-height: 100dvh;
   margin: 0px;
   position: relative; }
 
@@ -299,8 +299,10 @@
 .fastforward:hover:after {
   background: #32c700; }
 
+/* Body never scrolls in play; #game-chooser handles its own overflow. */
 .scrollable {
-  overflow-y: scroll; }
+  overflow: hidden !important;
+  overscroll-behavior: none !important; }
 
 #social {
   position: absolute;

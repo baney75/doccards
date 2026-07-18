@@ -40,19 +40,37 @@
     COACH_KEY: "doccards_coach_seen",
 
     init: function () {
+      this.ensureFabBar();
+      // FAB order left→right: Sound, Big, Rules, Hint, Undo (Undo rightmost).
+      this.createSoundToggle();
+      this.createAccessibilityToggle();
       this.createRulesButton();
+      this.createHintFab();
+      this.createUndoFab();
       this.createRulesOverlay();
       this.createConfirmOverlay();
-      this.createAccessibilityToggle();
       this.createDealDisplay();
-      this.createSoundToggle();
-      this.createUndoFab();
-      this.createHintFab();
       this.createHUD();
       this.loadFavorites();
       this.tagDifficulties();
       this.hookEvents();
       Logger.info("dcui_initialized");
+    },
+
+    ensureFabBar: function () {
+      var bar = document.getElementById("dc-fab-bar");
+      if (bar) return bar;
+      bar = document.createElement("div");
+      bar.id = "dc-fab-bar";
+      bar.setAttribute("role", "toolbar");
+      bar.setAttribute("aria-label", "Game actions");
+      document.body.appendChild(bar);
+      return bar;
+    },
+
+    _appendToFabBar: function (btn) {
+      var bar = this.ensureFabBar();
+      bar.appendChild(btn);
     },
 
     afterGameReady: function () {
@@ -179,14 +197,15 @@
     },
 
     createRulesButton: function () {
+      if (document.getElementById("rules-btn")) return;
       var btn = document.createElement("button");
       btn.id = "rules-btn";
       btn.type = "button";
-      btn.innerHTML = '<span class="fab-glyph">?</span><span class="fab-label">Rules</span>';
+      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">i</span><span class="fab-label">Rules</span>';
       btn.title = "Game Rules";
       btn.setAttribute("aria-label", "Show game rules");
       btn.addEventListener("click", this.showRules.bind(this));
-      document.body.appendChild(btn);
+      this._appendToFabBar(btn);
     },
 
     createUndoFab: function () {
@@ -211,7 +230,7 @@
           Logger.warn("undo_fab_failed", { error: e.message });
         }
       });
-      document.body.appendChild(btn);
+      this._appendToFabBar(btn);
     },
 
     createHintFab: function () {
@@ -219,11 +238,11 @@
       var btn = document.createElement("button");
       btn.id = "hint-fab";
       btn.type = "button";
-      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">H</span><span class="fab-label">Hint</span>';
+      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">?</span><span class="fab-label">Hint</span>';
       btn.title = "Hint: try a foundation move";
       btn.setAttribute("aria-label", "Show a hint");
       btn.addEventListener("click", this.showHint.bind(this));
-      document.body.appendChild(btn);
+      this._appendToFabBar(btn);
     },
 
     showHint: function () {
@@ -439,14 +458,15 @@
     },
 
     createAccessibilityToggle: function () {
+      if (document.getElementById("a11y-toggle")) return;
       var btn = document.createElement("button");
       btn.id = "a11y-toggle";
       btn.type = "button";
-      btn.innerHTML = '<span class="fab-glyph">Aa</span><span class="fab-label">Big</span>';
+      btn.innerHTML = '<span class="fab-glyph" aria-hidden="true">Aa</span><span class="fab-label">Big</span>';
       btn.title = "Toggle large cards and text";
       btn.setAttribute("aria-label", "Toggle large cards and text for easier reading");
       btn.addEventListener("click", this.toggleBigCards.bind(this));
-      document.body.appendChild(btn);
+      this._appendToFabBar(btn);
       var preferBig = false;
       try {
         preferBig = localStorage.getItem(this.BIG_CARDS_KEY) === "true";
@@ -498,6 +518,7 @@
     },
 
     createSoundToggle: function () {
+      if (document.getElementById("sound-toggle")) return;
       var btn = document.createElement("button");
       btn.id = "sound-toggle";
       btn.type = "button";
@@ -519,7 +540,7 @@
         if (on) DCUI._showToast("Sound on");
         else DCUI._showToast("Sound off");
       });
-      document.body.appendChild(btn);
+      this._appendToFabBar(btn);
       try {
         if (typeof DCSound !== "undefined" && !DCSound.enabled()) {
           btn.querySelector(".fab-glyph").textContent = "–";

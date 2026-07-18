@@ -51,8 +51,8 @@ define(["./solitaire"], function (solitaire) {
             const css = {
                     position: "absolute",
                     display: "none",
-                    backgroundColor: "#000",
-                    opacity: 0.7,
+                    backgroundColor: "#0D2240",
+                    opacity: 0.55,
                     top: 0,
                     left: 0,
                     width: 0,
@@ -140,6 +140,10 @@ define(["./solitaire"], function (solitaire) {
         const GameChooser = {
             selected: null,
             fade: false,
+            _scrollLocked: false,
+            _lockY: 0,
+            _onTouchMove: null,
+            _onWheel: null,
 
             init: function () {
                 this.refit();
@@ -150,9 +154,124 @@ define(["./solitaire"], function (solitaire) {
                 if (!node) {
                     return;
                 }
-                const height = node.get("winHeight");
+                // Never inflate document height — chooser is a fixed overlay.
+                // Clear any legacy min-height from older builds.
+                node.setStyle("min-height", "");
+                node.setStyle("height", "");
+            },
 
-                node.setStyle("min-height", height);
+            _isChooserTarget: function (target) {
+                if (!target) return false;
+                var el = target.nodeType === 1 ? target : target.parentElement;
+                if (!el || !el.closest) return false;
+                return !!el.closest("#game-chooser");
+            },
+
+            _lockBoardScroll: function () {
+                if (this._scrollLocked) return;
+                this._scrollLocked = true;
+                this._lockY = window.scrollY || window.pageYOffset || 0;
+                var html = document.documentElement;
+                var body = document.body;
+                html.classList.add("dc-chooser-open");
+                body.classList.add("dc-chooser-open");
+                body.classList.add("scrollable");
+                // Freeze the document so iOS rubber-band cannot drag the felt.
+                body.style.position = "fixed";
+                body.style.top = "-" + this._lockY + "px";
+                body.style.left = "0";
+                body.style.right = "0";
+                body.style.width = "100%";
+                html.style.overflow = "hidden";
+                body.style.overflow = "hidden";
+                try {
+                    window.scrollTo(0, 0);
+                } catch (e) {}
+
+                var self = this;
+                this._onTouchMove = function (e) {
+                    // Allow pan only inside the chooser overlay; block everything else.
+                    if (!self._isChooserTarget(e.target)) {
+                        e.preventDefault();
+                        return;
+                    }
+                    // At chooser scroll edges, stop chaining to the document.
+                    var chooser = document.getElementById("game-chooser");
+                    if (!chooser) return;
+                    var t = e.target && e.target.closest
+                        ? e.target.closest("#game-chooser")
+                        : chooser;
+                    if (t !== chooser && !chooser.contains(e.target)) {
+                        e.preventDefault();
+                    }
+                };
+                this._onWheel = function (e) {
+                    if (!self._isChooserTarget(e.target)) {
+                        e.preventDefault();
+                    }
+                };
+                document.addEventListener("touchmove", this._onTouchMove, {
+                    passive: false,
+                    capture: true,
+                });
+                document.addEventListener("wheel", this._onWheel, {
+                    passive: false,
+                    capture: true,
+                });
+            },
+
+            _unlockBoardScroll: function () {
+                if (!this._scrollLocked) return;
+                this._scrollLocked = false;
+                var html = document.documentElement;
+                var body = document.body;
+                html.classList.remove("dc-chooser-open");
+                body.classList.remove("dc-chooser-open");
+                body.classList.remove("scrollable");
+                body.style.position = "";
+                body.style.top = "";
+                body.style.left = "";
+                body.style.right = "";
+                body.style.width = "";
+                html.style.overflow = "";
+                body.style.overflow = "";
+                if (this._onTouchMove) {
+                    document.removeEventListener("touchmove", this._onTouchMove, {
+                        capture: true,
+                    });
+                    this._onTouchMove = null;
+                }
+                if (this._onWheel) {
+                    document.removeEventListener("wheel", this._onWheel, {
+                        capture: true,
+                    });
+                    this._onWheel = null;
+                }
+                try {
+                    window.scrollTo(0, this._lockY || 0);
+                    document.documentElement.scrollTop = 0;
+                    document.body.scrollTop = 0;
+                } catch (e) {}
+                this._lockY = 0;
+            },
+
+            _scrollChooserTo: function (li) {
+                var chooser = document.getElementById("game-chooser");
+                if (!chooser || !li) return;
+                // Scroll ONLY the chooser overlay — never Element.scrollIntoView
+                // (that walks ancestors and can yank the solitaire board).
+                try {
+                    var chooserRect = chooser.getBoundingClientRect();
+                    var liRect = li.getBoundingClientRect();
+                    var pad = 16;
+                    if (liRect.top < chooserRect.top + pad) {
+                        chooser.scrollTop += liRect.top - chooserRect.top - pad;
+                    } else if (liRect.bottom > chooserRect.bottom - pad) {
+                        chooser.scrollTop += liRect.bottom - chooserRect.bottom + pad;
+                    }
+                } catch (e) {
+                    /* ignore */
+                }
             },
 
             show: function (fade) {
@@ -175,8 +294,15 @@ define(["./solitaire"], function (solitaire) {
                 }
 
                 this._lastTouchSelect = null;
-                Y.one("#game-chooser").addClass("show");
-                Y.one(".solitairey_body").addClass("scrollable");
+                var chooser = Y.one("#game-chooser");
+                chooser.addClass("show");
+                // Reset overlay scroll; do not touch document scroll for content.
+                try {
+                    var node = document.getElementById("game-chooser");
+                    if (node) node.scrollTop = 0;
+                } catch (e) {}
+                this._lockBoardScroll();
+                this.refit();
             },
 
             hide: function () {
@@ -186,7 +312,7 @@ define(["./solitaire"], function (solitaire) {
 
                 Y.one("#game-chooser").removeClass("show");
                 Y.fire("gamechooser:hide", this);
-                Y.one(".solitairey_body").removeClass("scrollable");
+                this._unlockBoardScroll();
             },
 
             choose: function () {
@@ -212,14 +338,7 @@ define(["./solitaire"], function (solitaire) {
 
                 this.selected = game;
                 li.classList.add("selected");
-                // Keep the chosen game visible in the chooser list.
-                if (typeof li.scrollIntoView === "function") {
-                    try {
-                        li.scrollIntoView({ block: "nearest", behavior: "smooth" });
-                    } catch (e) {
-                        li.scrollIntoView(false);
-                    }
-                }
+                this._scrollChooserTo(li);
 
                 if (previous && previous !== game) {
                     Y.fire("gamechooser:select", this);
@@ -482,8 +601,21 @@ define(["./solitaire"], function (solitaire) {
                     if (loading) {
                         loading.addClass("hidden");
                     }
+                    const boot = document.getElementById("dc-boot");
+                    if (boot) {
+                        boot.setAttribute("aria-busy", "false");
+                        const status = boot.querySelector(".dc-boot-status");
+                        if (status) status.textContent = "Ready";
+                        boot.classList.add("dc-boot-done");
+                        setTimeout(function () {
+                            if (boot.parentNode) boot.parentNode.removeChild(boot);
+                        }, 320);
+                    }
                     callback();
                     Fade.hide();
+                    try {
+                        window.scrollTo(0, 0);
+                    } catch (e) {}
                 }
             },
 
@@ -545,10 +677,11 @@ define(["./solitaire"], function (solitaire) {
                     });
                 }
 
+                // Boot overlay (#dc-boot) is the branded loading UI.
                 Fade.show();
                 const loading = Y.one(".loading");
                 if (loading) {
-                    loading.removeClass("hidden");
+                    loading.addClass("hidden");
                 }
             },
         };
@@ -612,10 +745,12 @@ define(["./solitaire"], function (solitaire) {
             Y = YUI;
             window.Y = Y;
             if (Y.Solitaire) {
-                Y.Solitaire.offset = Y.Solitaire.offset || { left: 50, top: 70 };
-                Y.Solitaire.offset.top = 110;
-                Y.Solitaire.padding = Y.Solitaire.padding || { x: 50, y: 50 };
-                Y.Solitaire.padding.y = 110;
+                Y.Solitaire.offset = Y.Solitaire.offset || { left: 40, top: 70 };
+                // Layout origin below header+menu (do NOT also put this in padding.y).
+                Y.Solitaire.offset.top = 108;
+                Y.Solitaire.padding = Y.Solitaire.padding || { x: 40, y: 50 };
+                // Bottom chrome only (FABs / footer) — not another header clearance.
+                Y.Solitaire.padding.y = 72;
             }
             exportAPI();
             Y.on("domready", _my_load_func);
@@ -625,26 +760,43 @@ define(["./solitaire"], function (solitaire) {
             const game = active.game;
             const el = game.container();
             var padding = { x: Y.Solitaire.padding.x, y: Y.Solitaire.padding.y };
-            var footerEl = document.getElementById('site-footer');
-            if (footerEl && footerEl.offsetParent !== null) {
-              padding.y = Math.max(padding.y, footerEl.offsetHeight);
+            var offset = {
+                left: Y.Solitaire.offset.left,
+                top: Y.Solitaire.offset.top,
+            };
+            var winW = el.get("winWidth");
+            var winH = el.get("winHeight");
+            var footerEl = document.getElementById("site-footer");
+            var footerVisible = footerEl && footerEl.offsetParent !== null;
+            // Bottom reserve: FAB bar (~56) + optional footer (~40)
+            var bottomChrome = footerVisible ? 96 : 68;
+            padding.y = Math.max(padding.y, bottomChrome);
+            // Narrow phones: tighten side gutters so all columns fit.
+            if (winW < 520) {
+                padding.x = 8;
+                offset.left = 8;
+                Y.Solitaire.offset.left = 8;
+                Y.Solitaire.padding.x = 8;
             }
-            // Reserve space for bottom FABs on phones
-            if (window.matchMedia && window.matchMedia('(max-width: 480px)').matches) {
-              padding.y = Math.max(padding.y, 72);
-            }
-            var offset = Y.Solitaire.offset;
-            var width = el.get("winWidth") - padding.x;
-            var height = el.get("winHeight") - padding.y;
+            var width = winW - padding.x;
+            var height = winH - padding.y;
 
             Y.Solitaire.Application.windowHeight = height;
             var ratio = Math.min(
                 (width - offset.left) / game.width(),
                 (height - offset.top) / game.height(),
             );
+            // Small safety margin so the rightmost column isn't clipped
+            // by rounded device bezels / subpixel rounding.
+            if (winW < 520 && ratio > 0 && Number.isFinite(ratio)) {
+                ratio *= 0.96;
+            }
 
             active.game.resize(ratio);
             GameChooser.refit();
+            try {
+                window.scrollTo(0, 0);
+            } catch (e) {}
         }
 
         function clearDOM() {
