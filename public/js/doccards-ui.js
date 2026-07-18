@@ -662,11 +662,18 @@
       if (this._hudEl) this._hudEl.className = "dc-hud hidden";
     },
 
-    invalidMove: function () {
+    invalidMove: function (message) {
       document.body.classList.add("dc-invalid-nudge");
       var self = this;
       setTimeout(function () { document.body.classList.remove("dc-invalid-nudge"); }, 280);
-      this._showToast("That card can’t go there");
+      this._showToast(message || "That card can’t go there");
+    },
+
+    puzzleInvalid: function (message) {
+      document.body.classList.add("dc-pz-invalid-nudge");
+      var self = this;
+      setTimeout(function () { document.body.classList.remove("dc-pz-invalid-nudge"); }, 280);
+      this._showToast(message || "That won’t work here");
     },
 
     tagDifficulties: function () {

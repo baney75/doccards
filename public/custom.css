@@ -1954,9 +1954,17 @@ body.dc-invalid-nudge #dc-toast {
   animation: dc-nudge 0.28s ease;
 }
 
+body.dc-pz-invalid-nudge .dc-puzzle-root,
+body.dc-pz-invalid-nudge .dc-wb-shell,
+body.dc-pz-invalid-nudge #dc-toast {
+  animation: dc-nudge 0.28s ease;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .dc-coach-card,
-  body.dc-invalid-nudge .card.yui3-dd-draggable {
+  body.dc-invalid-nudge .card.yui3-dd-draggable,
+  body.dc-pz-invalid-nudge .dc-puzzle-root,
+  body.dc-pz-invalid-nudge .dc-wb-shell {
     animation: none !important;
   }
 }
@@ -2441,11 +2449,19 @@ body.dc-mode-woodblock.solitairey_body {
   position: fixed;
   inset: 0;
   z-index: 5000;
-  padding-top: calc(96px + env(safe-area-inset-top));
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  padding-top: calc(88px + env(safe-area-inset-top));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
+  padding-left: calc(8px + env(safe-area-inset-left));
+  padding-right: calc(8px + env(safe-area-inset-right));
   box-sizing: border-box;
   overflow: hidden;
   touch-action: manipulation;
+  --pz-board-max: min(calc(100vw - 32px), 420px);
+  --pz-cell-4: max(56px, min(calc(var(--pz-board-max) / 4 - 10px), 84px));
+  --pz-cell-9: max(30px, min(calc(var(--pz-board-max) / 9 - 4px), 40px));
+  --pz-snake-cell: max(10px, min(calc((var(--pz-board-max) - 20px) / 16), 22px));
+  --pz-cell-5: max(40px, min(calc(var(--pz-board-max) / 5 - 8px), 64px));
+  --wb-cell: max(28px, min(calc((var(--pz-board-max) - 18px) / 10), 38px));
 }
 
 .dc-woodblock-root.hidden,
@@ -2455,13 +2471,15 @@ body.dc-mode-woodblock.solitairey_body {
 
 .dc-wb-shell {
   height: 100%;
+  max-height: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: flex-start;
-  gap: 8px;
-  padding: 6px 10px 12px;
-  --wb-cell: max(26px, min(calc((100vw - 56px) / 10), 34px));
+  gap: 6px;
+  padding: 4px 8px 10px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .dc-wb-hint {
@@ -2580,13 +2598,14 @@ body.dc-mode-woodblock.solitairey_body {
 
 .dc-wb-tray {
   display: flex;
-  gap: 12px;
+  gap: 10px;
   justify-content: center;
   align-items: center;
   width: 100%;
-  max-width: min(100%, calc(var(--wb-cell) * 10 + 40px));
-  min-height: 96px;
-  padding: 10px 6px;
+  max-width: min(100%, calc(var(--wb-cell) * 10 + 32px));
+  min-height: calc(var(--wb-cell) * 2.2);
+  flex-shrink: 0;
+  padding: 8px 4px;
   background: rgba(42, 26, 14, 0.55);
   border-radius: 14px;
   border: 1px solid rgba(139, 105, 20, 0.35);
@@ -2624,8 +2643,8 @@ body.dc-mode-woodblock.solitairey_body {
 }
 
 .dc-wb-mini-cell {
-  width: 14px;
-  height: 14px;
+  width: max(12px, calc(var(--wb-cell) * 0.42));
+  height: max(12px, calc(var(--wb-cell) * 0.42));
   border-radius: 3px;
   background: transparent;
 }
@@ -2707,8 +2726,18 @@ body.dc-mode-woodblock.solitairey_body {
 }
 
 @media (min-width: 768px) {
-  .dc-wb-shell {
-    --wb-cell: 34px;
+  .dc-puzzle-root,
+  .dc-woodblock-root {
+    --pz-board-max: 440px;
+    --wb-cell: 38px;
+  }
+}
+
+@media (min-width: 1024px) and (orientation: landscape) {
+  .dc-puzzle-root,
+  .dc-woodblock-root {
+    --pz-board-max: 480px;
+    --wb-cell: 40px;
   }
 }
 
@@ -2841,14 +2870,15 @@ body.dc-mode-woodblock.solitairey_body {
 /* 2048 */
 .dc-2048-board {
   display: grid;
-  grid-template-columns: repeat(4, min(18vw, 72px));
-  grid-template-rows: repeat(4, min(18vw, 72px));
+  grid-template-columns: repeat(4, var(--pz-cell-4));
+  grid-template-rows: repeat(4, var(--pz-cell-4));
   gap: 8px;
   padding: 10px;
   background: rgba(42, 26, 14, 0.55);
   border-radius: 14px;
   border: 2px solid rgba(201, 169, 97, 0.35);
   outline: none;
+  touch-action: none;
 }
 
 .dc-2048-cell {
@@ -2877,7 +2907,7 @@ body.dc-mode-woodblock.solitairey_body {
 /* Mines */
 .dc-mines-board {
   display: grid;
-  grid-template-columns: repeat(9, min(8.2vw, 36px));
+  grid-template-columns: repeat(9, var(--pz-cell-9));
   gap: 3px;
   padding: 8px;
   background: rgba(42, 26, 14, 0.55);
@@ -2886,10 +2916,10 @@ body.dc-mode-woodblock.solitairey_body {
 }
 
 .dc-mines-cell {
-  width: min(8.2vw, 36px);
-  height: min(8.2vw, 36px);
-  min-width: 32px;
-  min-height: 32px;
+  width: var(--pz-cell-9);
+  height: var(--pz-cell-9);
+  min-width: 30px;
+  min-height: 30px;
   border: none;
   border-radius: 6px;
   font-weight: 700;
@@ -2931,8 +2961,8 @@ body.dc-mode-woodblock.solitairey_body {
 /* Slide 15 */
 .dc-slide-board {
   display: grid;
-  grid-template-columns: repeat(4, min(18vw, 72px));
-  grid-template-rows: repeat(4, min(18vw, 72px));
+  grid-template-columns: repeat(4, var(--pz-cell-4));
+  grid-template-rows: repeat(4, var(--pz-cell-4));
   gap: 6px;
   padding: 10px;
   background: rgba(13, 34, 64, 0.45);
@@ -2946,9 +2976,11 @@ body.dc-mode-woodblock.solitairey_body {
   background: linear-gradient(145deg, #F8F1E3, #E8D5A3);
   color: #0D2240;
   font-family: 'Playfair Display', Georgia, serif;
-  font-size: clamp(1.1rem, 4.5vw, 1.6rem);
+  font-size: clamp(1rem, calc(var(--pz-cell-4) * 0.32), 1.6rem);
   font-weight: 700;
   cursor: pointer;
+  width: var(--pz-cell-4);
+  height: var(--pz-cell-4);
   min-height: 44px;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.5);
   touch-action: manipulation;
@@ -2970,8 +3002,8 @@ body.dc-mode-woodblock.solitairey_body {
 
 .dc-snake-board {
   display: grid;
-  grid-template-columns: repeat(16, min(4.8vw, 18px));
-  grid-template-rows: repeat(20, min(4.8vw, 18px));
+  grid-template-columns: repeat(16, var(--pz-snake-cell));
+  grid-template-rows: repeat(20, var(--pz-snake-cell));
   gap: 1px;
   padding: 6px;
   border-radius: 12px;
@@ -2979,11 +3011,12 @@ body.dc-mode-woodblock.solitairey_body {
   box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.25);
   touch-action: none;
   outline: none;
+  max-width: var(--pz-board-max);
 }
 
 .dc-snake-cell {
-  width: min(4.8vw, 18px);
-  height: min(4.8vw, 18px);
+  width: var(--pz-snake-cell);
+  height: var(--pz-snake-cell);
   min-width: 10px;
   min-height: 10px;
   border-radius: 3px;
@@ -3038,16 +3071,16 @@ body.dc-mode-woodblock.solitairey_body {
 /* Memory match */
 .dc-memory-board {
   display: grid;
-  grid-template-columns: repeat(4, min(18vw, 72px));
-  grid-template-rows: repeat(4, min(18vw, 72px));
+  grid-template-columns: repeat(4, var(--pz-cell-4));
+  grid-template-rows: repeat(4, var(--pz-cell-4));
   gap: 8px;
   justify-content: center;
   margin: 12px auto;
 }
 
 .dc-memory-card {
-  width: min(18vw, 72px);
-  height: min(18vw, 72px);
+  width: var(--pz-cell-4);
+  height: var(--pz-cell-4);
   min-width: 56px;
   min-height: 56px;
   border: none;
@@ -3079,13 +3112,14 @@ body.dc-mode-woodblock.solitairey_body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
-  max-width: min(88vw, 320px);
-  margin: 16px auto;
+  width: min(100%, var(--pz-board-max));
+  max-width: 340px;
+  margin: 12px auto;
 }
 
 .dc-simon-pad {
   aspect-ratio: 1;
-  min-height: 100px;
+  min-height: max(88px, calc(var(--pz-board-max) * 0.38));
   border: none;
   border-radius: 18px;
   background: var(--pad, #C9A961);
@@ -3104,16 +3138,16 @@ body.dc-mode-woodblock.solitairey_body {
 /* Lights Out */
 .dc-lights-board {
   display: grid;
-  grid-template-columns: repeat(5, min(14vw, 52px));
-  grid-template-rows: repeat(5, min(14vw, 52px));
+  grid-template-columns: repeat(5, var(--pz-cell-5));
+  grid-template-rows: repeat(5, var(--pz-cell-5));
   gap: 6px;
   justify-content: center;
-  margin: 16px auto;
+  margin: 12px auto;
 }
 
 .dc-lights-cell {
-  width: min(14vw, 52px);
-  height: min(14vw, 52px);
+  width: var(--pz-cell-5);
+  height: var(--pz-cell-5);
   min-width: 44px;
   min-height: 44px;
   border: none;

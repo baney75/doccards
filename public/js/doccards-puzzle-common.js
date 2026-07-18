@@ -101,6 +101,58 @@
 
     saveInt: function (key, val) {
       try { localStorage.setItem(key, String(val)); } catch (e) {}
+    },
+
+    INVALID: {
+      woodblock: "That block won't fit there",
+      game2048: "Nothing moved — try another direction",
+      slide: "That tile can't slide there",
+      mines: "Can't dig there",
+      snake: "Can't turn back",
+      memory: "Pick another card",
+      simon: "Wrong pad — watch again",
+      lights: "Tap a light on the board",
+      default: "That won't work here"
+    },
+
+    feedbackInvalid: function (message) {
+      if (typeof DCUI === "undefined") return;
+      var msg = message;
+      if (!msg && typeof DCHub !== "undefined" && DCHub.mode) {
+        msg = this.INVALID[DCHub.mode] || this.INVALID.default;
+      }
+      if (DCUI.puzzleInvalid) DCUI.puzzleInvalid(msg || this.INVALID.default);
+      else if (DCUI.invalidMove) DCUI.invalidMove(msg);
+    },
+
+    /** Resolve grid cell from pointer — uses DOM hit test (handles gaps/padding). */
+    pointerCell: function (boardEl, clientX, clientY, cellSelector, gridSize) {
+      if (!boardEl) return null;
+      var rect = boardEl.getBoundingClientRect();
+      if (clientX < rect.left || clientY < rect.top || clientX > rect.right || clientY > rect.bottom) {
+        return null;
+      }
+      var el = document.elementFromPoint(clientX, clientY);
+      var cell = el && el.closest ? el.closest(cellSelector || ".dc-wb-cell") : null;
+      if (cell && boardEl.contains(cell)) {
+        var r = parseInt(cell.getAttribute("data-r"), 10);
+        var c = parseInt(cell.getAttribute("data-c"), 10);
+        if (!isNaN(r) && !isNaN(c)) return { r: r, c: c, el: cell };
+      }
+      if (!gridSize) return null;
+      var style = getComputedStyle(boardEl);
+      var cellPx = parseFloat(style.getPropertyValue("--wb-cell"));
+      if (!cellPx || isNaN(cellPx)) {
+        cellPx = (rect.width - (parseFloat(style.paddingLeft) || 0) * 2) / gridSize;
+      }
+      var gap = parseFloat(style.gap) || parseFloat(style.rowGap) || 0;
+      var padL = parseFloat(style.paddingLeft) || 0;
+      var padT = parseFloat(style.paddingTop) || 0;
+      var stride = cellPx + gap;
+      var cIdx = Math.floor((clientX - rect.left - padL + gap * 0.5) / stride);
+      var rIdx = Math.floor((clientY - rect.top - padT + gap * 0.5) / stride);
+      if (rIdx < 0 || cIdx < 0 || rIdx >= gridSize || cIdx >= gridSize) return null;
+      return { r: rIdx, c: cIdx, el: null };
     }
   };
 })(this);
