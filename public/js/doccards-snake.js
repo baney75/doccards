@@ -210,7 +210,13 @@
             if (d === "right") self._setDir(1, 0);
           });
         }
-        this.newGame(false);
+        // Keep the snake if we left mid-run (hub remounts wipe the DOM only).
+        if (!this._snake || !this._snake.length) this.newGame(false);
+        else {
+          this._paint();
+          this._updateHud();
+          if (!this._paused && !this._over) this._startLoop();
+        }
       }
       this._paint();
       this._updateHud();

@@ -224,17 +224,25 @@
     mount: function (rootEl) {
       if (!rootEl) return;
       this._root = rootEl;
+      // Hub clears the root between modes; always rebuild shell if missing.
+      this._shellBuilt = false;
       if (!this._mounted) {
         this._mounted = true;
         this._best = this._loadBest();
-        if (!this._loadState()) this.newGame(false);
-        return;
+        if (!this._loadState()) {
+          this._grid = emptyGrid();
+          this._score = 0;
+          this._combo = 0;
+          this._tray = [randomShape(), randomShape(), randomShape()];
+        }
       }
-      if (!this._shellBuilt) {
+      // Defer paint to resume() when paused so shell is built once after unpause.
+      if (!this._paused) {
         this._buildShell();
+        this._paintBoard();
+        this._paintTray();
+        this._updateScore(true);
       }
-      this._paintBoard();
-      this._paintTray();
     },
 
     pause: function () {
@@ -247,6 +255,7 @@
         if (!this._shellBuilt) this._buildShell();
         this._paintBoard();
         this._paintTray();
+        this._updateScore(true);
       }
     },
 
@@ -256,11 +265,13 @@
       this._combo = 0;
       this._tray = [randomShape(), randomShape(), randomShape()];
       this._selectedIndex = null;
-      if (this._root) {
+      if (this._root && !this._paused) {
         if (!this._shellBuilt) this._buildShell();
         this._paintBoard();
         this._paintTray();
         this._updateScore(true);
+        this._saveState();
+      } else if (this._root) {
         this._saveState();
       }
       if (playSound !== false && typeof DCSound !== "undefined" && DCSound.deal) DCSound.deal();
@@ -307,7 +318,7 @@
     },
 
     _buildShell: function () {
-      if (!this._root || this._paused) return;
+      if (!this._root) return;
       var self = this;
       this._root.innerHTML =
         '<div class="dc-wb-shell">' +

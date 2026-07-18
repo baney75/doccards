@@ -453,9 +453,20 @@ define(["./solitaire"], function (solitaire) {
                  active.name = fromQuery;
              } else {
                  var saved = null;
-                 try { saved = localStorage.getItem("FossSolitairey_options"); } catch (e) {}
-                 if (saved) {
-                     try { saved = JSON.parse(saved); } catch (e) { saved = null; }
+                 // Prefer jStorage (handles JSON + FossSolitairey_ prefix).
+                 try {
+                     if (typeof $ !== "undefined" && $.jStorage) {
+                         saved = $.jStorage.get("FossSolitairey_options");
+                         if (saved == null) saved = $.jStorage.get("options");
+                     }
+                 } catch (e) {}
+                 if (saved == null) {
+                     try {
+                         var raw = localStorage.getItem("FossSolitairey_options");
+                         if (raw) {
+                             try { saved = JSON.parse(raw); } catch (e2) { saved = raw; }
+                         }
+                     } catch (e) {}
                  }
                  if (saved && games[saved]) {
                      active.name = saved;
@@ -747,25 +758,41 @@ define(["./solitaire"], function (solitaire) {
             if (Y.Solitaire) {
                 Y.Solitaire.offset = Y.Solitaire.offset || { left: 40, top: 70 };
                 // Layout origin below header+menu + notch safe area.
-                Y.Solitaire.offset.top = (function () {
-                    var menu = document.getElementById("menu");
-                    var header = document.querySelector(".doccards-header");
-                    var h = 0;
-                    if (header) h += header.offsetHeight || 0;
-                    if (menu) h += menu.offsetHeight || 0;
-                    var safe = 0;
-                    try {
-                        var st = getComputedStyle(document.documentElement);
-                        safe = parseInt(st.getPropertyValue("env(safe-area-inset-top)"), 10) || 0;
-                    } catch (e) {}
-                    return Math.max(96, h + safe + 8);
-                })();
+                applyChromeOffset();
                 Y.Solitaire.padding = Y.Solitaire.padding || { x: 40, y: 50 };
                 // Bottom chrome only (FABs / footer) — not another header clearance.
                 Y.Solitaire.padding.y = 72;
             }
             exportAPI();
             Y.on("domready", _my_load_func);
+        }
+
+        /** Measure header + menu so the tableau never tucks under chrome. */
+        function applyChromeOffset() {
+            if (!Y || !Y.Solitaire) return 96;
+            Y.Solitaire.offset = Y.Solitaire.offset || { left: 40, top: 70 };
+            var menu = document.getElementById("menu");
+            // Header uses id="doccards-header" (not a class).
+            var header = document.getElementById("doccards-header");
+            var h = 0;
+            if (header) h += header.offsetHeight || 0;
+            if (menu && !menu.classList.contains("dc-hidden-mode")) {
+                h += menu.offsetHeight || 0;
+            }
+            var safe = 0;
+            try {
+                // env() only resolves via a real CSS property, not getPropertyValue("env(...)").
+                var probe = document.createElement("div");
+                probe.style.cssText =
+                    "position:absolute;visibility:hidden;pointer-events:none;" +
+                    "padding-top:env(safe-area-inset-top,0px);";
+                document.body.appendChild(probe);
+                safe = parseInt(getComputedStyle(probe).paddingTop, 10) || 0;
+                document.body.removeChild(probe);
+            } catch (e) {}
+            var top = Math.max(96, h + safe + 8);
+            Y.Solitaire.offset.top = top;
+            return top;
         }
 
         function resize() {
@@ -775,6 +802,7 @@ define(["./solitaire"], function (solitaire) {
             if (!active.game) {
                 return;
             }
+            applyChromeOffset();
             const game = active.game;
             const el = game.container();
             var padding = { x: Y.Solitaire.padding.x, y: Y.Solitaire.padding.y };

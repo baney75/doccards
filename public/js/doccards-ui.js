@@ -656,10 +656,16 @@
 
     showHUD: function () {
       if (this._hudEl) this._hudEl.className = "dc-hud";
+      if (this._dealEl && this._dealEl.querySelector("#deal-value")) {
+        var seed = this._dealEl.querySelector("#deal-value").textContent || "";
+        if (seed && seed !== "#---") this._dealEl.className = "deal-display";
+      }
     },
 
     hideHUD: function () {
       if (this._hudEl) this._hudEl.className = "dc-hud hidden";
+      // Deal chip is solitaire-only chrome (not for puzzles).
+      if (this._dealEl) this._dealEl.className = "deal-display hidden";
     },
 
     invalidMove: function (message) {
@@ -838,6 +844,9 @@
     showCoachIfNeeded: function () {
       try {
         if (localStorage.getItem(this.COACH_KEY) === "1") return;
+        // Allow ?coach=0 for automated QA / adversarial runs.
+        var params = new URLSearchParams(root.location.search || "");
+        if (params.get("coach") === "0") return;
       } catch (e) { return; }
       var tips = [
         "Tap a game card once to play. Star your favorites.",

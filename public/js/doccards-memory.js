@@ -83,7 +83,12 @@
         if (movesLabel && movesLabel.previousElementSibling) {
           movesLabel.previousElementSibling.textContent = "Moves";
         }
-        this.newGame(false);
+        // Only deal a fresh board when we have no in-memory game (mode remount keeps progress).
+        if (!this._deck || !this._deck.length) this.newGame(false);
+        else {
+          this._paint();
+          this._updateHud();
+        }
       }
       this._paint();
     },

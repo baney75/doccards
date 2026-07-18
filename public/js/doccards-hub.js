@@ -303,8 +303,21 @@
 
     launchSolitaire: function (gameId) {
       this.setMode(MODE_SOLITAIRE, true, true);
-      if (gameId && root.Y && root.Y.on) {
-        try { root.Y.fire("newGameRun"); } catch (e) {}
+      if (!gameId) return;
+      try {
+        var App = root.Y && root.Y.Solitaire && root.Y.Solitaire.Application;
+        if (App && typeof App.switchToGame === "function" && typeof App.newGame === "function") {
+          App.switchToGame(gameId);
+          App.newGame();
+          try {
+            if (root.$ && root.$.jStorage) root.$.jStorage.set("FossSolitairey_options", gameId);
+          } catch (ePersist) {}
+          return;
+        }
+      } catch (e) {}
+      // Fallback: legacy event always deals Freecell.
+      if (root.Y && root.Y.fire) {
+        try { root.Y.fire("newGameRun"); } catch (e2) {}
       }
     },
 

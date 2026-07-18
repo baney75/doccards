@@ -416,15 +416,22 @@ body.dc-chooser-open #site-footer {
 #game-chooser.show > #game-chooser-contents {
   flex: 1;
   min-height: 0;
+  /* min-width:0 lets the flex child shrink so the game grid cannot blow past the phone. */
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 #game-chooser-contents {
-  max-width: 960px;
+  max-width: min(960px, 100%);
+  width: 100%;
   margin: 0 auto;
   padding: 10px 12px;
+  box-sizing: border-box;
 }
 
 .chooser-title {
@@ -437,10 +444,14 @@ body.dc-chooser-open #site-footer {
 
 #descriptions {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  /* min(..., 100%) keeps a single column on narrow phones instead of forcing 260px min tracks. */
+  grid-template-columns: repeat(auto-fill, minmax(min(260px, 100%), 1fr));
   gap: 14px;
   padding: 0;
   list-style: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
   align-items: start;
   justify-content: center;
 }
@@ -2325,14 +2336,15 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
    ============================================================ */
 .dc-hub-tabs {
   display: flex;
-  gap: 8px;
+  gap: 6px;
   justify-content: flex-start;
   margin: 8px auto 12px;
   padding: 4px 6px;
   background: rgba(13, 34, 64, 0.06);
   border-radius: 14px;
-  max-width: min(100%, 520px);
+  max-width: 100%;
   width: 100%;
+  min-width: 0;
   position: sticky;
   top: 0;
   z-index: 2;
@@ -2341,6 +2353,7 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
   flex-wrap: nowrap;
+  box-sizing: border-box;
 }
 
 .dc-hub-tabs::-webkit-scrollbar {
@@ -2356,17 +2369,19 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
 
 .dc-hub-tabs button {
   flex: 0 0 auto;
-  min-width: 72px;
+  min-width: 64px;
   min-height: 44px;
-  padding: 8px 14px;
+  padding: 8px 12px;
   border: none;
   border-radius: 10px;
   font-family: 'Inter', Helvetica, sans-serif;
   font-weight: 600;
-  font-size: 0.92rem;
+  font-size: 0.88rem;
   color: #0D2240;
   background: transparent;
   cursor: pointer;
+  white-space: nowrap;
+  touch-action: manipulation;
   transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 
@@ -2421,10 +2436,12 @@ body.dc-mode-puzzle #hint-fab,
 body.dc-mode-puzzle #undo-fab,
 body.dc-mode-puzzle #rules-btn,
 body.dc-mode-puzzle #a11y-toggle,
+body.dc-mode-puzzle .deal-display,
 body.dc-mode-woodblock #hint-fab,
 body.dc-mode-woodblock #undo-fab,
 body.dc-mode-woodblock #rules-btn,
-body.dc-mode-woodblock #a11y-toggle {
+body.dc-mode-woodblock #a11y-toggle,
+body.dc-mode-woodblock .deal-display {
   display: none !important;
 }
 
@@ -2449,19 +2466,38 @@ body.dc-mode-woodblock.solitairey_body {
   position: fixed;
   inset: 0;
   z-index: 5000;
-  padding-top: calc(88px + env(safe-area-inset-top));
-  padding-bottom: calc(12px + env(safe-area-inset-bottom));
-  padding-left: calc(8px + env(safe-area-inset-left));
-  padding-right: calc(8px + env(safe-area-inset-right));
+  /* Header only in puzzle mode (menu hidden) — leave room for brand bar + safe area. */
+  padding-top: calc(64px + env(safe-area-inset-top, 0px));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: calc(8px + env(safe-area-inset-left, 0px));
+  padding-right: calc(8px + env(safe-area-inset-right, 0px));
   box-sizing: border-box;
   overflow: hidden;
   touch-action: manipulation;
-  --pz-board-max: min(calc(100vw - 32px), 420px);
-  --pz-cell-4: max(56px, min(calc(var(--pz-board-max) / 4 - 10px), 84px));
-  --pz-cell-9: max(30px, min(calc(var(--pz-board-max) / 9 - 4px), 40px));
+  --pz-board-max: min(calc(100vw - 24px), min(calc(100dvh - 160px), 440px));
+  --pz-cell-4: max(52px, min(calc(var(--pz-board-max) / 4 - 10px), 84px));
+  --pz-cell-9: max(28px, min(calc(var(--pz-board-max) / 9 - 4px), 40px));
   --pz-snake-cell: max(10px, min(calc((var(--pz-board-max) - 20px) / 16), 22px));
-  --pz-cell-5: max(40px, min(calc(var(--pz-board-max) / 5 - 8px), 64px));
-  --wb-cell: max(28px, min(calc((var(--pz-board-max) - 18px) / 10), 38px));
+  --pz-cell-5: max(36px, min(calc(var(--pz-board-max) / 5 - 8px), 64px));
+  --wb-cell: max(26px, min(calc((var(--pz-board-max) - 18px) / 10), 40px));
+}
+
+/* iPad / large tablet: more board room, keep touch-friendly cells */
+@media (min-width: 768px) and (pointer: coarse) {
+  .dc-woodblock-root,
+  .dc-puzzle-root {
+    padding-top: calc(72px + env(safe-area-inset-top, 0px));
+    --pz-board-max: min(calc(100vw - 48px), min(calc(100dvh - 180px), 560px));
+    --wb-cell: max(32px, min(calc((var(--pz-board-max) - 20px) / 10), 48px));
+  }
+}
+
+/* Desktop wide */
+@media (min-width: 1100px) and (pointer: fine) {
+  .dc-woodblock-root,
+  .dc-puzzle-root {
+    --pz-board-max: min(480px, calc(100dvh - 200px));
+  }
 }
 
 .dc-woodblock-root.hidden,

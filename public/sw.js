@@ -1,6 +1,8 @@
-var CACHE_NAME = 'doccards-v32';
+var CACHE_NAME = 'doccards-v34';
 // Include every size pickThemeSize() may choose (79 on small non-retina).
 var CARD_SIZES = [79, 95, 122, 244];
+// Warm the most common play size first so first offline deal has faces.
+var PRIORITY_CARD_SIZE = 122;
 var SUITS = ['s', 'h', 'c', 'd'];
 var RANKS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13];
 
@@ -14,6 +16,14 @@ var BASE = (function () {
 function asset(path) {
   if (path.charAt(0) !== '/') path = '/' + path;
   return BASE + path;
+}
+
+function absoluteUrl(pathOrUrl) {
+  try {
+    return new URL(pathOrUrl, self.location.origin).href;
+  } catch (e) {
+    return pathOrUrl;
+  }
 }
 
 function cachePut(cache, key, response) {
@@ -35,8 +45,9 @@ function stashCopy(cacheKey, resp) {
   } catch (e) {
     return;
   }
+  var key = absoluteUrl(cacheKey);
   caches.open(CACHE_NAME).then(function (c) {
-    return cachePut(c, cacheKey, copy);
+    return cachePut(c, key, copy);
   }).catch(function () {});
 }
 
@@ -119,9 +130,10 @@ var LAYOUT_ICONS = [
 });
 
 function cacheFile(cache, url) {
+  var key = absoluteUrl(url);
   return fetch(url).then(function (r) {
     if (r.ok) {
-      return cachePut(cache, url, r).then(function () { return true; });
+      return cachePut(cache, key, r).then(function () { return true; });
     }
     return false;
   }).catch(function () {
@@ -129,27 +141,78 @@ function cacheFile(cache, url) {
   });
 }
 
+/** Resilient precache — one missing file must not fail the whole install (iOS is strict). */
+function precacheShell(cache) {
+  return Promise.all(
+    PRECACHE_URLS.map(function (url) {
+      return cacheFile(cache, url);
+    })
+  );
+}
+
+function warmPriorityCards(cache) {
+  var urls = cardImagesForSize(PRIORITY_CARD_SIZE).concat(LAYOUT_ICONS);
+  // Concurrency-limited warm to avoid flooding mobile radios.
+  var i = 0;
+  var workers = 6;
+  function next() {
+    if (i >= urls.length) return Promise.resolve();
+    var url = urls[i++];
+    return cacheFile(cache, url).then(next);
+  }
+  var chain = [];
+  for (var w = 0; w < workers; w++) chain.push(next());
+  return Promise.all(chain);
+}
+
 function warmCardsInBackground() {
   caches.open(CACHE_NAME).then(function (cache) {
-    var bg = [];
-    CARD_SIZES.forEach(function (size) {
-      cardImagesForSize(size).forEach(function (url) {
-        bg.push(cacheFile(cache, url));
-      });
+    // After priority deck is warm, fill remaining sizes quietly.
+    var rest = CARD_SIZES.filter(function (s) { return s !== PRIORITY_CARD_SIZE; });
+    var urls = [];
+    rest.forEach(function (size) {
+      cardImagesForSize(size).forEach(function (url) { urls.push(url); });
     });
-    LAYOUT_ICONS.forEach(function (url) {
-      bg.push(cacheFile(cache, url));
-    });
-    return Promise.allSettled(bg);
+    var i = 0;
+    function next() {
+      if (i >= urls.length) return Promise.resolve();
+      var url = urls[i++];
+      return cacheFile(cache, url).then(next);
+    }
+    var chain = [];
+    for (var w = 0; w < 4; w++) chain.push(next());
+    return Promise.all(chain);
   }).catch(function () {});
+}
+
+function matchCache(requestOrUrl) {
+  var req = typeof requestOrUrl === 'string'
+    ? absoluteUrl(requestOrUrl)
+    : requestOrUrl;
+  return caches.match(req).then(function (hit) {
+    if (hit) return hit;
+    // Fallback: pathname-only (legacy keys from older SW versions).
+    try {
+      var path = typeof requestOrUrl === 'string'
+        ? new URL(absoluteUrl(requestOrUrl)).pathname
+        : new URL(requestOrUrl.url).pathname;
+      return caches.match(path);
+    } catch (e) {
+      return null;
+    }
+  });
 }
 
 self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(PRECACHE_URLS).then(function () {
-        warmCardsInBackground();
+      return precacheShell(cache).then(function () {
+        // Priority deck before activate so first offline deal has faces.
+        return warmPriorityCards(cache);
       });
+    }).then(function () {
+      // Do not skipWaiting here — mid-game reloads are owned by the page.
+      warmCardsInBackground();
     })
   );
 });
@@ -173,7 +236,13 @@ self.addEventListener('activate', function (event) {
 
 self.addEventListener('fetch', function (event) {
   var req = event.request;
-  var url = new URL(req.url);
+  var url;
+
+  try {
+    url = new URL(req.url);
+  } catch (e) {
+    return;
+  }
 
   if (req.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
@@ -184,8 +253,8 @@ self.addEventListener('fetch', function (event) {
         stashCopy(asset('/index.html'), resp);
         return resp;
       }).catch(function () {
-        return caches.match(asset('/index.html')).then(function (r) {
-          return r || caches.match(asset('/offline.html'));
+        return matchCache(asset('/index.html')).then(function (r) {
+          return r || matchCache(asset('/offline.html'));
         });
       })
     );
@@ -195,7 +264,7 @@ self.addEventListener('fetch', function (event) {
   var isJS = /\.js$/i.test(url.pathname);
   var isCSS = /\.css$/i.test(url.pathname);
   var isImage = /\.(png|jpg|webp|gif|svg|ico|woff2?)$/i.test(url.pathname);
-  var cacheKey = url.pathname;
+  var cacheKey = absoluteUrl(url.pathname + url.search);
 
   // App shell scripts/CSS: network-first so updates land quickly on iOS PWAs.
   if (isJS || isCSS) {
@@ -204,10 +273,13 @@ self.addEventListener('fetch', function (event) {
         stashCopy(cacheKey, resp);
         return resp;
       }).catch(function () {
-        return caches.match(cacheKey).then(function (cached) {
-          return cached || new Response(isCSS ? '/* offline */' : 'Offline', {
-            status: 503,
-            headers: { 'Content-Type': isCSS ? 'text/css' : 'text/plain' }
+        return matchCache(req).then(function (cached) {
+          if (cached) return cached;
+          return matchCache(url.pathname).then(function (c2) {
+            return c2 || new Response(isCSS ? '/* offline */' : '/* offline */', {
+              status: 503,
+              headers: { 'Content-Type': isCSS ? 'text/css' : 'application/javascript' }
+            });
           });
         });
       })
@@ -217,7 +289,7 @@ self.addEventListener('fetch', function (event) {
 
   // Images/fonts: cache-first with background refresh.
   event.respondWith(
-    caches.match(cacheKey).then(function (cached) {
+    matchCache(req).then(function (cached) {
       var network = fetch(req).then(function (resp) {
         stashCopy(cacheKey, resp);
         return resp;
@@ -225,13 +297,12 @@ self.addEventListener('fetch', function (event) {
         return null;
       });
       if (cached) {
-        // Refresh in background; never fail the cached response.
         network.then(function () {}).catch(function () {});
         return cached;
       }
       return network.then(function (resp) {
         if (resp) return resp;
-        if (isImage) return caches.match(asset('/trans.gif'));
+        if (isImage) return matchCache(asset('/trans.gif'));
         return new Response('Offline', { status: 503 });
       });
     })
@@ -243,15 +314,24 @@ self.addEventListener('message', function (event) {
     self.skipWaiting();
   }
   if (event.data && event.data.type === 'WARM_CARDS') {
-    var size = event.data.size || 122;
+    var size = event.data.size || PRIORITY_CARD_SIZE;
     caches.open(CACHE_NAME).then(function (cache) {
       var urls = cardImagesForSize(size);
+      if (size !== 244 && size !== PRIORITY_CARD_SIZE) {
+        urls = urls.concat(cardImagesForSize(PRIORITY_CARD_SIZE));
+      }
       if (size !== 244) {
         urls = urls.concat(cardImagesForSize(244));
       }
-      return Promise.allSettled(urls.map(function (url) {
-        return cacheFile(cache, url);
-      }));
+      var i = 0;
+      function next() {
+        if (i >= urls.length) return Promise.resolve();
+        var u = urls[i++];
+        return cacheFile(cache, u).then(next);
+      }
+      var chain = [];
+      for (var w = 0; w < 6; w++) chain.push(next());
+      return Promise.all(chain);
     }).then(function () {
       warmCardsInBackground();
     }).catch(function () {});

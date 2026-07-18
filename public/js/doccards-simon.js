@@ -146,7 +146,9 @@
             });
           })(PADS[i].id);
         }
-        this.newGame(false);
+        // Keep in-progress sequence across hub remounts.
+        if (!this._sequence || !this._sequence.length) this.newGame(false);
+        else this._updateHud();
       }
       this._updateHud();
     },

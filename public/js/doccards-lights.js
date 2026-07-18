@@ -104,7 +104,12 @@
         if (winsLabel && winsLabel.previousElementSibling) {
           winsLabel.previousElementSibling.textContent = "Wins";
         }
-        this.newGame(false);
+        // Remount: keep current puzzle if still in memory.
+        if (!this._grid) this.newGame(false);
+        else {
+          this._paint();
+          this._updateHud();
+        }
       }
       this._paint();
     },
