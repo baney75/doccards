@@ -130,7 +130,8 @@
 
     _move: function (idx) {
       if (!this._canMove(idx)) {
-        if (typeof DCUI !== "undefined" && DCUI.invalidMove) DCUI.invalidMove();
+        if (typeof DCPuzzle !== "undefined" && DCPuzzle.feedbackInvalid) DCPuzzle.feedbackInvalid();
+        else if (typeof DCUI !== "undefined" && DCUI.invalidMove) DCUI.invalidMove();
         return;
       }
       var blank = this._blankIndex();

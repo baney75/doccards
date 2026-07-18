@@ -248,7 +248,6 @@
     _move: function (dir) {
       var result = moveGrid(this._grid, dir);
       if (!result.moved) {
-        if (typeof DCUI !== "undefined" && DCUI.invalidMove) DCUI.invalidMove();
         return;
       }
       this._grid = result.grid;

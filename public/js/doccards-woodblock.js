@@ -187,17 +187,23 @@
     return true;
   }
 
-  function originFromCenter(shape, anchorR, anchorC) {
-    var b = shapeBounds(shape);
-    return {
-      row: Math.round(anchorR - b.anchorR),
-      col: Math.round(anchorC - b.anchorC)
-    };
-  }
-
   function originFromTopLeft(shape, row, col) {
     var b = shapeBounds(shape);
     return { row: row - b.minR, col: col - b.minC };
+  }
+
+  /** Snap like woodblockpuzzle.com: anchor to touched cell, try neighbors if blocked. */
+  function findBestOrigin(grid, shape, cellR, cellC) {
+    var offsets = [
+      [0, 0], [-1, 0], [1, 0], [0, -1], [0, 1],
+      [-1, -1], [-1, 1], [1, -1], [1, 1]
+    ];
+    var i;
+    for (i = 0; i < offsets.length; i++) {
+      var origin = originFromTopLeft(shape, cellR + offsets[i][0], cellC + offsets[i][1]);
+      if (canPlace(grid, shape, origin.row, origin.col)) return origin;
+    }
+    return null;
   }
 
   var WB = {
@@ -311,7 +317,7 @@
         '<button type="button" class="doccards-btn doccards-btn-secondary dc-wb-games" id="dc-wb-games">Games</button>' +
         '<button type="button" class="doccards-btn doccards-btn-secondary dc-wb-new" id="dc-wb-new">New</button>' +
         "</div>" +
-        '<p class="dc-wb-hint">Drag wooden blocks onto the 10×10 board · clear full lines</p>' +
+        '<p class="dc-wb-hint">Drag blocks onto the 10×10 board · or tap a block, then tap where it should go</p>' +
         '<div class="dc-wb-board-wrap"><div class="dc-wb-board" id="dc-wb-board" role="grid" aria-label="10 by 10 wood block grid"></div></div>' +
         '<div class="dc-wb-tray" id="dc-wb-tray" role="group" aria-label="Three block pieces"></div>' +
         '<div class="dc-wb-over hidden" id="dc-wb-over" role="dialog" aria-modal="true" aria-labelledby="dc-wb-over-title">' +
@@ -372,9 +378,14 @@
       if (isNaN(r) || isNaN(c)) return;
       var shape = this._tray[this._selectedIndex];
       if (!shape) return;
-      var origin = originFromTopLeft(shape, r, c);
-      var ok = this._placeAt(this._selectedIndex, origin.row, origin.col);
-      if (!ok && !fromDrag && typeof DCUI !== "undefined" && DCUI.invalidMove) DCUI.invalidMove();
+      var origin = findBestOrigin(this._grid, shape, r, c);
+      if (!origin) {
+        if (!fromDrag && typeof DCPuzzle !== "undefined" && DCPuzzle.feedbackInvalid) {
+          DCPuzzle.feedbackInvalid();
+        }
+        return;
+      }
+      this._placeAt(this._selectedIndex, origin.row, origin.col);
     },
 
     _selectTray: function (index) {
@@ -432,7 +443,7 @@
             var hit = false;
             var k;
             for (k = 0; k < shape.cells.length; k++) {
-              if (shape.cells[k][0] === r && shape.cells[k][1] === c) {
+              if (shape.cells[k][0] - dims.minR === r && shape.cells[k][1] - dims.minC === c) {
                 hit = true;
                 break;
               }
@@ -466,7 +477,7 @@
           var hit = false;
           var k;
           for (k = 0; k < shape.cells.length; k++) {
-            if (shape.cells[k][0] === r && shape.cells[k][1] === c) {
+            if (shape.cells[k][0] - dims.minR === r && shape.cells[k][1] - dims.minC === c) {
               hit = true;
               break;
             }
@@ -515,7 +526,9 @@
       var endDrag = function (clientX, clientY, wasDrag) {
         if (!self._drag) return;
         var placed = false;
+        var onBoard = false;
         if (wasDrag) {
+          onBoard = !!self._boardPointerCell(clientX, clientY);
           placed = self._tryDrop(clientX, clientY);
         }
         if (self._ghost && self._ghost.parentNode) self._ghost.parentNode.removeChild(self._ghost);
@@ -523,7 +536,9 @@
         self._clearHighlight();
         slot.classList.remove("dragging");
         self._drag = null;
-        if (wasDrag && !placed && typeof DCUI !== "undefined" && DCUI.invalidMove) DCUI.invalidMove();
+        if (wasDrag && !placed && onBoard && typeof DCPuzzle !== "undefined" && DCPuzzle.feedbackInvalid) {
+          DCPuzzle.feedbackInvalid();
+        }
       };
 
       slot.addEventListener("mousedown", function (e) {
@@ -599,6 +614,9 @@
 
     _boardPointerCell: function (clientX, clientY) {
       var board = document.getElementById("dc-wb-board");
+      if (typeof DCPuzzle !== "undefined" && DCPuzzle.pointerCell) {
+        return DCPuzzle.pointerCell(board, clientX, clientY, ".dc-wb-cell", GRID);
+      }
       if (!board) return null;
       var rect = board.getBoundingClientRect();
       if (clientX < rect.left || clientY < rect.top || clientX > rect.right || clientY > rect.bottom) {
@@ -606,10 +624,15 @@
       }
       var cellW = rect.width / GRID;
       var cellH = rect.height / GRID;
-      var c = (clientX - rect.left) / cellW;
-      var r = (clientY - rect.top) / cellH;
+      var c = Math.floor((clientX - rect.left) / cellW);
+      var r = Math.floor((clientY - rect.top) / cellH);
       if (r < 0 || c < 0 || r >= GRID || c >= GRID) return null;
       return { r: r, c: c };
+    },
+
+    _originForPointer: function (shape, ptr) {
+      if (!ptr) return null;
+      return findBestOrigin(this._grid, shape, ptr.r, ptr.c);
     },
 
     _highlightDrop: function (clientX, clientY) {
@@ -617,17 +640,27 @@
       if (!this._drag) return;
       var ptr = this._boardPointerCell(clientX, clientY);
       if (!ptr) return;
-      var origin = originFromCenter(this._drag.shape, ptr.r + 0.5, ptr.c + 0.5);
-      var ok = canPlace(this._grid, this._drag.shape, origin.row, origin.col);
+      var origin = findBestOrigin(this._grid, this._drag.shape, ptr.r, ptr.c);
       var board = document.getElementById("dc-wb-board");
       if (!board) return;
-      var i;
-      for (i = 0; i < this._drag.shape.cells.length; i++) {
-        var r = origin.row + this._drag.shape.cells[i][0];
-        var c = origin.col + this._drag.shape.cells[i][1];
+      if (!origin) {
+        var i;
+        for (i = 0; i < this._drag.shape.cells.length; i++) {
+          var br = ptr.r + this._drag.shape.cells[i][0];
+          var bc = ptr.c + this._drag.shape.cells[i][1];
+          if (br < 0 || bc < 0 || br >= GRID || bc >= GRID) continue;
+          var bad = board.querySelector('.dc-wb-cell[data-r="' + br + '"][data-c="' + bc + '"]');
+          if (bad) bad.classList.add("preview-bad");
+        }
+        return;
+      }
+      var j;
+      for (j = 0; j < this._drag.shape.cells.length; j++) {
+        var r = origin.row + this._drag.shape.cells[j][0];
+        var c = origin.col + this._drag.shape.cells[j][1];
         if (r < 0 || c < 0 || r >= GRID || c >= GRID) continue;
         var el = board.querySelector('.dc-wb-cell[data-r="' + r + '"][data-c="' + c + '"]');
-        if (el) el.classList.add(ok ? "preview-ok" : "preview-bad");
+        if (el) el.classList.add("preview-ok");
       }
     },
 
@@ -643,7 +676,8 @@
       if (!this._drag) return false;
       var ptr = this._boardPointerCell(clientX, clientY);
       if (!ptr) return false;
-      var origin = originFromCenter(this._drag.shape, ptr.r + 0.5, ptr.c + 0.5);
+      var origin = findBestOrigin(this._grid, this._drag.shape, ptr.r, ptr.c);
+      if (!origin) return false;
       return this._placeAt(this._drag.index, origin.row, origin.col);
     },
 
