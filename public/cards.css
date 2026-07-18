@@ -301,7 +301,8 @@
 
 /* Body never scrolls in play; #game-chooser handles its own overflow. */
 .scrollable {
-  overflow: hidden; }
+  overflow: hidden !important;
+  overscroll-behavior: none !important; }
 
 #social {
   position: absolute;

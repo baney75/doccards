@@ -140,9 +140,35 @@ body {
   -moz-background-size: 100% 100%;
 }
 
-/* Chooser scrolls inside its overlay — body stays locked */
-.solitairey_body.scrollable {
+/* Chooser open: document frozen; only #game-chooser may scroll.
+   Do NOT set touch-action:none on body — it intersects with descendants
+   and can block the chooser's own pan-y scrolling. JS locks non-chooser
+   touchmove; overflow/overscroll lock the document. */
+html.dc-chooser-open,
+html.dc-chooser-open body,
+body.dc-chooser-open,
+.solitairey_body.scrollable,
+.solitairey_body.dc-chooser-open {
   overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+/* Felt/cards must not receive gestures or appear to slide under the overlay */
+body.dc-chooser-open > .card,
+body.dc-chooser-open > .stack,
+.solitairey_body.dc-chooser-open > .card,
+.solitairey_body.dc-chooser-open > .stack {
+  pointer-events: none !important;
+  visibility: hidden !important;
+}
+
+body.dc-chooser-open #doccards-header,
+body.dc-chooser-open #menu,
+body.dc-chooser-open #dc-fab-bar,
+body.dc-chooser-open .deal-display,
+body.dc-chooser-open #site-footer {
+  pointer-events: none !important;
+  visibility: hidden !important;
 }
 
 /* ---- Branded boot / loading (grandpa logo) ---- */
@@ -334,28 +360,45 @@ body {
   }
 }
 
-/* ---- Game Chooser ---- */
+/* ---- Game Chooser (sole scroll surface while open) ---- */
 #game-chooser {
   max-height: 100vh;
   max-height: -webkit-fill-available;
   max-height: 100dvh;
+  overflow-x: hidden;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
-  overscroll-behavior-y: contain;
+  /* none = do not chain scroll to the solitaire document behind */
+  overscroll-behavior: none;
+  overscroll-behavior-y: none;
   padding-top: calc(12px + env(safe-area-inset-top, 0));
+  padding-bottom: calc(24px + env(safe-area-inset-bottom, 0));
   /* Above brand header (9000) so Return to game is always clickable */
   z-index: 9500 !important;
+  touch-action: pan-y;
 }
 
 #game-chooser.show {
   position: fixed !important;
-  inset: 0;
+  inset: 0 !important;
   left: 0 !important;
   top: 0 !important;
-  right: 0;
-  bottom: 0;
-  width: 100%;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  height: 100% !important;
+  max-height: 100dvh !important;
+  min-height: 0 !important;
   box-sizing: border-box;
+  /* Fully opaque — kill cards.css green.webp so the board cannot show through */
+  background-color: #F8F1E3 !important;
+  background-image:
+    radial-gradient(ellipse at top, rgba(232, 213, 163, 0.22), transparent 48%),
+    linear-gradient(180deg, #F8F1E3 0%, #efe6d4 100%) !important;
+  background-attachment: scroll !important;
+  background-size: auto !important;
+  background-repeat: no-repeat !important;
 }
 
 #game-chooser-contents {
@@ -2126,11 +2169,7 @@ body.dc-winning #doccards-header::after {
   transform: scaleX(1);
 }
 
-#game-chooser.show {
-  background:
-    radial-gradient(ellipse at top, rgba(232, 213, 163, 0.22), transparent 48%),
-    linear-gradient(180deg, #F8F1E3 0%, #efe6d4 100%) !important;
-}
+/* (Chooser open background is defined with #game-chooser.show above.) */
 
 #descriptions li {
   border: 1px solid rgba(13, 34, 64, 0.08);
