@@ -1,4 +1,4 @@
-var CACHE_NAME = 'doccards-v23';
+var CACHE_NAME = 'doccards-v31';
 // Include every size pickThemeSize() may choose (79 on small non-retina).
 var CARD_SIZES = [79, 95, 122, 244];
 var SUITS = ['s', 'h', 'c', 'd'];
@@ -62,6 +62,16 @@ var PRECACHE_URLS = [
   asset('/pwa-512x512.png'),
   asset('/pwa-maskable-192.png'),
   asset('/pwa-maskable-512.png'),
+  asset('/js/doccards-puzzle-common.js'),
+  asset('/js/doccards-woodblock.js'),
+  asset('/js/doccards-2048.js'),
+  asset('/js/doccards-mines.js'),
+  asset('/js/doccards-slide.js'),
+  asset('/js/doccards-snake.js'),
+  asset('/js/doccards-memory.js'),
+  asset('/js/doccards-simon.js'),
+  asset('/js/doccards-lights.js'),
+  asset('/js/doccards-hub.js'),
   asset('/brand-mark.webp'),
   asset('/brand-mark.png'),
   asset('/og-image.png'),
@@ -138,17 +148,7 @@ self.addEventListener('install', function (event) {
   event.waitUntil(
     caches.open(CACHE_NAME).then(function (cache) {
       return cache.addAll(PRECACHE_URLS).then(function () {
-        self.skipWaiting();
-        // Warm default sharp deck before install finishes so offline
-        // opens are not empty placeholders; other sizes continue in background.
-        var priority = cardImagesForSize(122);
-        return Promise.allSettled(
-          priority.map(function (url) {
-            return cacheFile(cache, url);
-          })
-        ).then(function () {
-          warmCardsInBackground();
-        });
+        warmCardsInBackground();
       });
     })
   );
@@ -178,7 +178,7 @@ self.addEventListener('fetch', function (event) {
   if (req.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
 
-  if (req.mode === 'navigate') {
+  if (req.mode === 'navigate' || req.destination === 'document') {
     event.respondWith(
       fetch(req).then(function (resp) {
         stashCopy(asset('/index.html'), resp);
@@ -243,6 +243,17 @@ self.addEventListener('message', function (event) {
     self.skipWaiting();
   }
   if (event.data && event.data.type === 'WARM_CARDS') {
-    warmCardsInBackground();
+    var size = event.data.size || 122;
+    caches.open(CACHE_NAME).then(function (cache) {
+      var urls = cardImagesForSize(size);
+      if (size !== 244) {
+        urls = urls.concat(cardImagesForSize(244));
+      }
+      return Promise.allSettled(urls.map(function (url) {
+        return cacheFile(cache, url);
+      }));
+    }).then(function () {
+      warmCardsInBackground();
+    }).catch(function () {});
   }
 });

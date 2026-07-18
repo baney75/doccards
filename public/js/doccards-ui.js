@@ -79,6 +79,28 @@
       this.updateDealNumber();
       this.showCoachIfNeeded();
       this.showIosInstallHintIfNeeded();
+      this._warmCardsCache();
+      if (typeof DCHub !== "undefined" && DCHub.onReady) {
+        DCHub.onReady();
+      }
+    },
+
+    _warmCardsCache: function () {
+      var self = this;
+      var post = function () {
+        try {
+          if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) return;
+          var size = 122;
+          if (root.Y && root.Y.Solitaire && root.Y.Solitaire.Application && root.Y.Solitaire.Application.pickThemeSize) {
+            size = root.Y.Solitaire.Application.pickThemeSize();
+          }
+          navigator.serviceWorker.controller.postMessage({ type: "WARM_CARDS", size: size });
+        } catch (e) {}
+      };
+      post();
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.addEventListener("controllerchange", post, { once: true });
+      }
     },
 
     showIosInstallHintIfNeeded: function () {
@@ -802,6 +824,7 @@
       var btns = document.querySelectorAll(".filter-btn");
       for (var i = 0; i < btns.length; i++) {
         btns[i].classList.toggle("active", btns[i].dataset.filter === key);
+        btns[i].setAttribute("aria-pressed", btns[i].dataset.filter === key ? "true" : "false");
       }
     },
 
@@ -810,9 +833,9 @@
         if (localStorage.getItem(this.COACH_KEY) === "1") return;
       } catch (e) { return; }
       var tips = [
-        "Deal New Cards starts a fresh hand. Undo takes a move back.",
-        "Tap ? for rules. Tap Aa for bigger cards that are easier to read.",
-        "Choose Game → Easy filters for gentler solitaires. Pin favorites with the star."
+        "Tap a game card once to play. Star your favorites.",
+        "Tap ? for rules. Tap Aa for bigger cards.",
+        "Games opens solitaire and puzzles — Wood Block, 2048, Mines, Slide 15, Snake, Memory, Simon & Lights Out."
       ];
       var step = 0;
       var self = this;

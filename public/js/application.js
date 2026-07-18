@@ -127,6 +127,9 @@ define(["./solitaire"], function (solitaire) {
             _currentGameClass = cls;
         }
         function playGame(name) {
+            if (typeof DCHub !== "undefined") {
+                DCHub.setMode("solitaire", true);
+            }
             switchToGame(name);
 
             try { $.jStorage.set("FossSolitairey_options", name); } catch (e) {}
@@ -256,7 +259,8 @@ define(["./solitaire"], function (solitaire) {
             },
 
             _scrollChooserTo: function (li) {
-                var chooser = document.getElementById("game-chooser");
+                var chooser = document.getElementById("game-chooser-contents") ||
+                    document.getElementById("game-chooser");
                 if (!chooser || !li) return;
                 // Scroll ONLY the chooser overlay — never Element.scrollIntoView
                 // (that walks ancestors and can yank the solitaire board).
@@ -284,12 +288,9 @@ define(["./solitaire"], function (solitaire) {
                     this.fade = true;
                 }
 
-                // Coach tip card sits above the chooser — dismiss so it cannot block Play.
+                // Coach tip card sits above the chooser — dismiss visually only; do not mark seen until user finishes tips.
                 var coach = document.getElementById("dc-coach");
                 if (coach) {
-                    try {
-                        localStorage.setItem("doccards_coach_seen", "1");
-                    } catch (e) {}
                     coach.remove();
                 }
 
@@ -298,11 +299,15 @@ define(["./solitaire"], function (solitaire) {
                 chooser.addClass("show");
                 // Reset overlay scroll; do not touch document scroll for content.
                 try {
-                    var node = document.getElementById("game-chooser");
+                    var node = document.getElementById("game-chooser-contents") ||
+                        document.getElementById("game-chooser");
                     if (node) node.scrollTop = 0;
                 } catch (e) {}
                 this._lockBoardScroll();
                 this.refit();
+                if (typeof DCHub !== "undefined" && DCHub.onChooserOpen) {
+                    DCHub.onChooserOpen();
+                }
             },
 
             hide: function () {
@@ -320,8 +325,12 @@ define(["./solitaire"], function (solitaire) {
                     return;
                 }
 
-                this.hide();
-                playGame(this.selected);
+                var self = this;
+                var run = function () {
+                    self.hide();
+                    playGame(self.selected);
+                };
+                confirmDestructive("Switch games? Your current hand will be lost.", run);
             },
 
             select: function (game) {
@@ -549,19 +558,7 @@ define(["./solitaire"], function (solitaire) {
                 }
                 var id = e.currentTarget._node.id;
                 GameChooser.select(id);
-                // Touch / narrow: first tap expands rules; second tap on same game plays.
-                var touchy =
-                    window.matchMedia &&
-                    (window.matchMedia("(pointer: coarse)").matches ||
-                        window.matchMedia("(max-width: 700px)").matches);
-                if (touchy && GameChooser._lastTouchSelect === id) {
-                    GameChooser.choose();
-                    GameChooser._lastTouchSelect = null;
-                    return;
-                }
-                if (touchy) {
-                    GameChooser._lastTouchSelect = id;
-                }
+                GameChooser.choose();
             }
             function playFromChooser(e) {
                 e.halt();
@@ -729,7 +726,10 @@ define(["./solitaire"], function (solitaire) {
 
             Preloader.preload();
             Preloader.loaded(function () {
-                playGame(active.name);
+                var puzzleMode = typeof DCHub !== "undefined" && DCHub.isPuzzleMode && DCHub.isPuzzleMode(DCHub.mode);
+                if (!puzzleMode) {
+                    playGame(active.name);
+                }
                 if (typeof DCUI !== "undefined" && DCUI.afterGameReady) {
                     DCUI.afterGameReady();
                 }
@@ -746,8 +746,20 @@ define(["./solitaire"], function (solitaire) {
             window.Y = Y;
             if (Y.Solitaire) {
                 Y.Solitaire.offset = Y.Solitaire.offset || { left: 40, top: 70 };
-                // Layout origin below header+menu (do NOT also put this in padding.y).
-                Y.Solitaire.offset.top = 108;
+                // Layout origin below header+menu + notch safe area.
+                Y.Solitaire.offset.top = (function () {
+                    var menu = document.getElementById("menu");
+                    var header = document.querySelector(".doccards-header");
+                    var h = 0;
+                    if (header) h += header.offsetHeight || 0;
+                    if (menu) h += menu.offsetHeight || 0;
+                    var safe = 0;
+                    try {
+                        var st = getComputedStyle(document.documentElement);
+                        safe = parseInt(st.getPropertyValue("env(safe-area-inset-top)"), 10) || 0;
+                    } catch (e) {}
+                    return Math.max(96, h + safe + 8);
+                })();
                 Y.Solitaire.padding = Y.Solitaire.padding || { x: 40, y: 50 };
                 // Bottom chrome only (FABs / footer) — not another header clearance.
                 Y.Solitaire.padding.y = 72;
@@ -757,6 +769,12 @@ define(["./solitaire"], function (solitaire) {
         }
 
         function resize() {
+            if (typeof DCHub !== "undefined" && DCHub.isPuzzleMode && DCHub.isPuzzleMode(DCHub.mode)) {
+                return;
+            }
+            if (!active.game) {
+                return;
+            }
             const game = active.game;
             const el = game.container();
             var padding = { x: Y.Solitaire.padding.x, y: Y.Solitaire.padding.y };
