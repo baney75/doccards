@@ -86,14 +86,21 @@
     },
 
     _warmCardsCache: function () {
-      try {
-        if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) return;
-        var size = 122;
-        if (root.Y && root.Y.Solitaire && root.Y.Solitaire.Application && root.Y.Solitaire.Application.pickThemeSize) {
-          size = root.Y.Solitaire.Application.pickThemeSize();
-        }
-        navigator.serviceWorker.controller.postMessage({ type: "WARM_CARDS", size: size });
-      } catch (e) {}
+      var self = this;
+      var post = function () {
+        try {
+          if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) return;
+          var size = 122;
+          if (root.Y && root.Y.Solitaire && root.Y.Solitaire.Application && root.Y.Solitaire.Application.pickThemeSize) {
+            size = root.Y.Solitaire.Application.pickThemeSize();
+          }
+          navigator.serviceWorker.controller.postMessage({ type: "WARM_CARDS", size: size });
+        } catch (e) {}
+      };
+      post();
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker.addEventListener("controllerchange", post, { once: true });
+      }
     },
 
     showIosInstallHintIfNeeded: function () {

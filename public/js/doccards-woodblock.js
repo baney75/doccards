@@ -525,7 +525,6 @@
         var bonus = lines * 10 + (lines > 1 ? lines * 5 : 0) + this._combo * 2;
         this._score += bonus;
         this._grid = applyClears(this._grid, clears);
-        this._flashClears(clears);
         if (typeof DCSound !== "undefined" && DCSound.suitClear) DCSound.suitClear();
         if (typeof DCFX !== "undefined" && DCFX.burstConfetti) DCFX.burstConfetti(12 + lines * 8, true);
         if (typeof DCUI !== "undefined" && DCUI._showToast) {
@@ -542,6 +541,9 @@
 
       this._paintBoard();
       this._paintTray();
+      if (lines > 0) {
+        this._flashClears(clears);
+      }
       this._updateScore();
 
       if (gameOver(this._grid, this._tray)) {
@@ -593,8 +595,9 @@
       var scoreEl = document.getElementById("dc-wb-over-score");
       if (scoreEl) scoreEl.textContent = String(this._score);
       if (over) over.classList.remove("hidden");
-      if (typeof DCSound !== "undefined" && DCSound.win) DCSound.win();
-      if (typeof DCFX !== "undefined" && DCFX.burstConfetti) DCFX.burstConfetti(48, false);
+      if (typeof DCSound !== "undefined" && DCSound.milestone) DCSound.milestone();
+      else if (typeof DCSound !== "undefined" && DCSound.cardPlace) DCSound.cardPlace();
+      if (typeof DCFX !== "undefined" && DCFX.burstConfetti) DCFX.burstConfetti(24, true);
       if (typeof DCUI !== "undefined" && DCUI._showToast) {
         DCUI._showToast("Great run — " + this._score + " points!", "win");
       }

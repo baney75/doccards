@@ -391,6 +391,9 @@ body.dc-chooser-open #site-footer {
   max-height: 100dvh !important;
   min-height: 0 !important;
   box-sizing: border-box;
+  display: flex !important;
+  flex-direction: column;
+  overflow: hidden !important;
   /* Fully opaque — kill cards.css green.webp so the board cannot show through */
   background-color: #F8F1E3 !important;
   background-image:
@@ -399,6 +402,23 @@ body.dc-chooser-open #site-footer {
   background-attachment: scroll !important;
   background-size: auto !important;
   background-repeat: no-repeat !important;
+}
+
+#game-chooser.show > #close-chooser {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  margin: 10px auto 0;
+  background: linear-gradient(180deg, #F8F1E3 0%, #efe6d4 100%);
+}
+
+#game-chooser.show > #game-chooser-contents {
+  flex: 1;
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 #game-chooser-contents {
@@ -752,8 +772,8 @@ footer {
   height: auto !important;
 }
 
-/* Override cards.css clipped description div */
-#descriptions div {
+/* Override cards.css clipped description div — not .layout previews */
+#descriptions div.description {
   position: relative !important;
   height: auto !important;
   overflow: visible !important;
@@ -1960,7 +1980,7 @@ body.dc-invalid-nudge #dc-toast {
   display: block !important;
   width: 100%;
   max-width: 140px;
-  height: 88px;
+  height: 88px !important;
   margin: 0 auto 4px;
   border-radius: 8px;
   border: 1px solid rgba(13, 34, 64, 0.12);
@@ -2304,6 +2324,16 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   background: rgba(13, 34, 64, 0.06);
   border-radius: 14px;
   max-width: 360px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+#fav-filter {
+  position: sticky;
+  top: 52px;
+  z-index: 2;
+  background: linear-gradient(180deg, #F8F1E3 0%, rgba(248, 241, 227, 0.96) 100%);
 }
 
 .dc-hub-tabs button {
@@ -2363,7 +2393,14 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   pointer-events: none !important;
 }
 
-body.dc-mode-woodblock .solitairey_body {
+body.dc-mode-woodblock #hint-fab,
+body.dc-mode-woodblock #undo-fab,
+body.dc-mode-woodblock #rules-btn,
+body.dc-mode-woodblock #a11y-toggle {
+  display: none !important;
+}
+
+body.dc-mode-woodblock.solitairey_body {
   background-image:
     radial-gradient(ellipse at 50% 18%, rgba(232, 213, 163, 0.1) 0%, rgba(0, 0, 0, 0) 42%),
     radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0) 52%, rgba(0, 0, 0, 0.22) 78%, rgba(0, 0, 0, 0.38) 100%),
