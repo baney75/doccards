@@ -1,8 +1,8 @@
 {
   "id": "/doccards/",
-  "name": "Doc's Cards — Solitaire for Grandpa",
+  "name": "Doc's Cards",
   "short_name": "Doc's Cards",
-  "description": "A beautiful solitaire collection — Klondike, FreeCell, Spider, and more. Made with love for Grandpa.",
+  "description": "Beautiful solitaire and wood block puzzles. Offline, ad-free, installable.",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
@@ -47,25 +47,22 @@
   ],
   "shortcuts": [
     {
-      "name": "Spider (1 Suit)",
-      "short_name": "Easy Spider",
-      "description": "Gentle Spider for learning",
-      "url": "./?game=spider1s",
-      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }]
-    },
-    {
       "name": "Klondike",
       "short_name": "Klondike",
-      "description": "Classic solitaire",
       "url": "./?game=klondike",
-      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
     },
     {
       "name": "Freecell",
       "short_name": "Freecell",
-      "description": "Skillful Freecell",
       "url": "./?game=freecell",
-      "icons": [{ "src": "pwa-192x192.png", "sizes": "192x192" }]
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Wood Block",
+      "short_name": "Wood Block",
+      "url": "./?mode=woodblock",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
     }
   ],
   "categories": ["games", "entertainment"],

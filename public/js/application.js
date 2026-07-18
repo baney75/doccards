@@ -127,6 +127,9 @@ define(["./solitaire"], function (solitaire) {
             _currentGameClass = cls;
         }
         function playGame(name) {
+            if (typeof DCHub !== "undefined") {
+                DCHub.setMode("solitaire", true);
+            }
             switchToGame(name);
 
             try { $.jStorage.set("FossSolitairey_options", name); } catch (e) {}
@@ -303,6 +306,9 @@ define(["./solitaire"], function (solitaire) {
                 } catch (e) {}
                 this._lockBoardScroll();
                 this.refit();
+                if (typeof DCHub !== "undefined" && DCHub.onChooserOpen) {
+                    DCHub.onChooserOpen();
+                }
             },
 
             hide: function () {
@@ -549,19 +555,7 @@ define(["./solitaire"], function (solitaire) {
                 }
                 var id = e.currentTarget._node.id;
                 GameChooser.select(id);
-                // Touch / narrow: first tap expands rules; second tap on same game plays.
-                var touchy =
-                    window.matchMedia &&
-                    (window.matchMedia("(pointer: coarse)").matches ||
-                        window.matchMedia("(max-width: 700px)").matches);
-                if (touchy && GameChooser._lastTouchSelect === id) {
-                    GameChooser.choose();
-                    GameChooser._lastTouchSelect = null;
-                    return;
-                }
-                if (touchy) {
-                    GameChooser._lastTouchSelect = id;
-                }
+                GameChooser.choose();
             }
             function playFromChooser(e) {
                 e.halt();

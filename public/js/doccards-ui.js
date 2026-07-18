@@ -79,6 +79,9 @@
       this.updateDealNumber();
       this.showCoachIfNeeded();
       this.showIosInstallHintIfNeeded();
+      if (typeof DCHub !== "undefined" && DCHub.onReady) {
+        DCHub.onReady();
+      }
     },
 
     showIosInstallHintIfNeeded: function () {
@@ -810,9 +813,9 @@
         if (localStorage.getItem(this.COACH_KEY) === "1") return;
       } catch (e) { return; }
       var tips = [
-        "Deal New Cards starts a fresh hand. Undo takes a move back.",
-        "Tap ? for rules. Tap Aa for bigger cards that are easier to read.",
-        "Choose Game → Easy filters for gentler solitaires. Pin favorites with the star."
+        "Tap a game card once to play. Star your favorites.",
+        "Tap ? for rules. Tap Aa for bigger cards.",
+        "Try Wood Block in Games — clear lines, beat your best score."
       ];
       var step = 0;
       var self = this;
