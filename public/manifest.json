@@ -2,7 +2,7 @@
   "id": "/doccards/",
   "name": "Doc's Cards",
   "short_name": "Doc's Cards",
-  "description": "Beautiful solitaire and wood block puzzles. Offline, ad-free, installable.",
+  "description": "Solitaire, Wood Block, 2048, Mines & Slide 15 — offline, ad-free, installable.",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
@@ -62,6 +62,18 @@
       "name": "Wood Block",
       "short_name": "Wood Block",
       "url": "./?mode=woodblock",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "2048",
+      "short_name": "2048",
+      "url": "./?mode=game2048",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mines",
+      "short_name": "Mines",
+      "url": "./?mode=mines",
       "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
     }
   ],

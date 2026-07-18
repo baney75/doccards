@@ -6,6 +6,7 @@
   var GRID = 10;
   var BEST_KEY = "doccards_woodblock_best";
   var SCORE_KEY = "doccards_woodblock_last";
+  var STATE_KEY = "doccards_woodblock_state";
 
   var WOOD_TONES = [
     "#C9A66B", "#B8894A", "#A67C52", "#8B6914",
@@ -220,7 +221,7 @@
       if (!this._mounted) {
         this._mounted = true;
         this._best = this._loadBest();
-        this.newGame();
+        if (!this._loadState()) this.newGame(false);
         return;
       }
       if (!this._shellBuilt) {
@@ -243,7 +244,7 @@
       }
     },
 
-    newGame: function () {
+    newGame: function (playSound) {
       this._grid = emptyGrid();
       this._score = 0;
       this._combo = 0;
@@ -254,8 +255,36 @@
         this._paintBoard();
         this._paintTray();
         this._updateScore(true);
+        this._saveState();
       }
-      if (typeof DCSound !== "undefined" && DCSound.deal) DCSound.deal();
+      if (playSound !== false && typeof DCSound !== "undefined" && DCSound.deal) DCSound.deal();
+    },
+
+    _loadState: function () {
+      try {
+        var raw = localStorage.getItem(STATE_KEY);
+        if (!raw) return false;
+        var data = JSON.parse(raw);
+        if (!data || !data.grid) return false;
+        this._grid = data.grid;
+        this._score = data.score || 0;
+        this._combo = data.combo || 0;
+        this._tray = data.tray || [randomShape(), randomShape(), randomShape()];
+        return true;
+      } catch (e) {
+        return false;
+      }
+    },
+
+    _saveState: function () {
+      try {
+        localStorage.setItem(STATE_KEY, JSON.stringify({
+          grid: this._grid,
+          score: this._score,
+          combo: this._combo,
+          tray: this._tray
+        }));
+      } catch (e) {}
     },
 
     _loadBest: function () {
@@ -658,8 +687,9 @@
 
       if (gameOver(this._grid, this._tray)) {
         this._endGame();
-      } else if (typeof DCSound !== "undefined" && DCSound.cardPlace) {
-        DCSound.cardPlace();
+      } else {
+        this._saveState();
+        if (typeof DCSound !== "undefined" && DCSound.cardPlace) DCSound.cardPlace();
       }
       return true;
     },
@@ -703,6 +733,7 @@
 
     _endGame: function () {
       this._saveBest();
+      try { localStorage.removeItem(STATE_KEY); } catch (e) {}
       var over = document.getElementById("dc-wb-over");
       var scoreEl = document.getElementById("dc-wb-over-score");
       if (scoreEl) scoreEl.textContent = String(this._score);

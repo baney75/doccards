@@ -726,8 +726,8 @@ define(["./solitaire"], function (solitaire) {
 
             Preloader.preload();
             Preloader.loaded(function () {
-                var wbMode = typeof DCHub !== "undefined" && DCHub.mode === "woodblock";
-                if (!wbMode) {
+                var puzzleMode = typeof DCHub !== "undefined" && DCHub.isPuzzleMode && DCHub.isPuzzleMode(DCHub.mode);
+                if (!puzzleMode) {
                     playGame(active.name);
                 }
                 if (typeof DCUI !== "undefined" && DCUI.afterGameReady) {
@@ -769,7 +769,7 @@ define(["./solitaire"], function (solitaire) {
         }
 
         function resize() {
-            if (typeof DCHub !== "undefined" && DCHub.mode === "woodblock") {
+            if (typeof DCHub !== "undefined" && DCHub.isPuzzleMode && DCHub.isPuzzleMode(DCHub.mode)) {
                 return;
             }
             if (!active.game) {

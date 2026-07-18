@@ -55,8 +55,12 @@
     <script src="js/doccards-sound.js"></script>
     <script src="js/doccards-ui.js"></script>
     <script src="js/doccards-fx.js"></script>
-    <script src="js/doccards-hub.js"></script>
+    <script src="js/doccards-puzzle-common.js"></script>
     <script src="js/doccards-woodblock.js"></script>
+    <script src="js/doccards-2048.js"></script>
+    <script src="js/doccards-mines.js"></script>
+    <script src="js/doccards-slide.js"></script>
+    <script src="js/doccards-hub.js"></script>
     <script src="js/lodash.custom.min.js"></script>
     <script src="js/require.js"></script>
     <script src="js/yui-all-min.js"></script>
@@ -215,10 +219,6 @@ requirejs.config({
     <div id="game-chooser">
         <button id="close-chooser">Return to game</button>
         <div id="game-chooser-contents">
-            <div id="dc-hub-tabs" class="dc-hub-tabs" role="tablist">
-                <button type="button" role="tab" id="dc-tab-solitaire" class="active" aria-selected="true" aria-controls="dc-hub-panel-solitaire">Solitaire</button>
-                <button type="button" role="tab" id="dc-tab-woodblock" aria-selected="false" aria-controls="dc-hub-panel-woodblock">Wood Block</button>
-            </div>
             <h2 class="chooser-title">Pick your game</h2>
             <ul id="descriptions">
                 <li id="agnes">
@@ -478,14 +478,6 @@ requirejs.config({
                     </div>
                 </li>
             </ul>
-            <div id="dc-hub-panel-woodblock" class="dc-hub-panel hidden">
-                <div class="dc-wb-chooser">
-                    <img src="pwa-maskable-512.png" alt="" class="dc-wb-chooser-mark" width="72" height="72" />
-                    <h3>Wood Block</h3>
-                    <p class="dc-wb-chooser-tag">10×10 board · drag wooden blocks · clear full lines</p>
-                    <button type="button" class="doccards-btn dc-wb-play-btn" id="dc-wb-launch">Play</button>
-                </div>
-            </div>
         </div>
     </div>
     <footer id="site-footer">

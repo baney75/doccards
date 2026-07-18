@@ -2317,16 +2317,26 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
    ============================================================ */
 .dc-hub-tabs {
   display: flex;
-  gap: 10px;
-  justify-content: center;
+  gap: 8px;
+  justify-content: flex-start;
   margin: 8px auto 12px;
-  padding: 4px;
+  padding: 4px 6px;
   background: rgba(13, 34, 64, 0.06);
   border-radius: 14px;
-  max-width: 360px;
+  max-width: min(100%, 520px);
+  width: 100%;
   position: sticky;
   top: 0;
   z-index: 2;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  flex-wrap: nowrap;
+}
+
+.dc-hub-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 #fav-filter {
@@ -2337,8 +2347,10 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
 }
 
 .dc-hub-tabs button {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 72px;
   min-height: 44px;
+  padding: 8px 14px;
   border: none;
   border-radius: 10px;
   font-family: 'Inter', Helvetica, sans-serif;
@@ -2360,28 +2372,32 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   display: none !important;
 }
 
-.dc-wb-chooser {
+.dc-wb-chooser,
+.dc-pz-chooser {
   text-align: center;
-  padding: 28px 16px 40px;
+  padding: 24px 16px 36px;
   max-width: 420px;
   margin: 0 auto;
 }
 
-.dc-wb-chooser-mark {
+.dc-wb-chooser-mark,
+.dc-pz-chooser-mark {
   border-radius: 50%;
   object-fit: cover;
   box-shadow: 0 8px 28px rgba(13, 34, 64, 0.2), 0 0 0 3px rgba(201, 169, 97, 0.5);
   margin-bottom: 16px;
 }
 
-.dc-wb-chooser h3 {
+.dc-wb-chooser h3,
+.dc-pz-chooser h3 {
   font-family: 'Playfair Display', Georgia, serif;
   color: #0D2240;
   font-size: 1.6rem;
   margin: 0 0 8px;
 }
 
-.dc-wb-chooser-tag {
+.dc-wb-chooser-tag,
+.dc-pz-chooser-tag {
   color: #2D2D2D;
   font-size: 0.95rem;
   margin: 0 0 20px;
@@ -2393,6 +2409,10 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   pointer-events: none !important;
 }
 
+body.dc-mode-puzzle #hint-fab,
+body.dc-mode-puzzle #undo-fab,
+body.dc-mode-puzzle #rules-btn,
+body.dc-mode-puzzle #a11y-toggle,
 body.dc-mode-woodblock #hint-fab,
 body.dc-mode-woodblock #undo-fab,
 body.dc-mode-woodblock #rules-btn,
@@ -2400,12 +2420,15 @@ body.dc-mode-woodblock #a11y-toggle {
   display: none !important;
 }
 
+body.dc-mode-puzzle .card,
+body.dc-mode-puzzle .stack,
 body.dc-mode-woodblock .card,
 body.dc-mode-woodblock .stack {
   visibility: hidden !important;
   pointer-events: none !important;
 }
 
+body.dc-mode-puzzle.solitairey_body,
 body.dc-mode-woodblock.solitairey_body {
   background-image:
     radial-gradient(ellipse at 50% 18%, rgba(232, 213, 163, 0.1) 0%, rgba(0, 0, 0, 0) 42%),
@@ -2413,7 +2436,8 @@ body.dc-mode-woodblock.solitairey_body {
     url(green.webp) !important;
 }
 
-.dc-woodblock-root {
+.dc-woodblock-root,
+.dc-puzzle-root {
   position: fixed;
   inset: 0;
   z-index: 5000;
@@ -2421,9 +2445,11 @@ body.dc-mode-woodblock.solitairey_body {
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
   box-sizing: border-box;
   overflow: hidden;
+  touch-action: manipulation;
 }
 
-.dc-woodblock-root.hidden {
+.dc-woodblock-root.hidden,
+.dc-puzzle-root.hidden {
   display: none !important;
 }
 
@@ -2704,6 +2730,239 @@ body.dc-mode-woodblock.solitairey_body {
   }
   .dc-confetti,
   .dc-spark { display: none !important; }
+}
+
+/* Shared puzzle shell */
+.dc-pz-shell,
+.dc-wb-shell {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+  padding: 6px 10px 12px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.dc-pz-top,
+.dc-wb-top {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: min(100%, 480px);
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.dc-pz-stat,
+.dc-wb-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+}
+
+.dc-pz-stat-label,
+.dc-wb-stat-label {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #C9A961;
+  font-weight: 600;
+}
+
+.dc-pz-stat-val,
+.dc-wb-stat-val {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.35rem;
+  color: #F8F1E3;
+  font-variant-numeric: tabular-nums;
+}
+
+.dc-pz-hint,
+.dc-wb-hint {
+  font-size: 0.72rem;
+  color: rgba(248, 241, 227, 0.72);
+  text-align: center;
+  margin: 0;
+}
+
+.dc-pz-over,
+.dc-wb-over {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(13, 34, 64, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.dc-pz-over.hidden,
+.dc-wb-over.hidden {
+  display: none !important;
+}
+
+.dc-pz-over-card,
+.dc-wb-over-card {
+  background: linear-gradient(165deg, #F8F1E3 0%, #E8D5A3 100%);
+  border-radius: 20px;
+  padding: 28px 32px;
+  text-align: center;
+  max-width: min(92vw, 360px);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+}
+
+.dc-pz-over-title,
+.dc-wb-over-title {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: 1.6rem;
+  color: #9C1E1E;
+  margin: 0 0 8px;
+}
+
+.dc-pz-over-score,
+.dc-wb-over-score {
+  font-size: 1.05rem;
+  color: #0D2240;
+  margin: 0 0 18px;
+}
+
+.dc-pz-play-btn {
+  min-height: 48px;
+  min-width: 140px;
+  font-size: 1.05rem;
+}
+
+/* 2048 */
+.dc-2048-board {
+  display: grid;
+  grid-template-columns: repeat(4, min(18vw, 72px));
+  grid-template-rows: repeat(4, min(18vw, 72px));
+  gap: 8px;
+  padding: 10px;
+  background: rgba(42, 26, 14, 0.55);
+  border-radius: 14px;
+  border: 2px solid rgba(201, 169, 97, 0.35);
+  outline: none;
+}
+
+.dc-2048-cell {
+  border-radius: 8px;
+  background: rgba(62, 42, 24, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: clamp(1rem, 4vw, 1.5rem);
+}
+
+.dc-2048-cell.has-tile {
+  background: var(--tile-bg, #C9A961);
+  color: var(--tile-fg, #0D2240);
+  box-shadow: inset 0 2px 0 rgba(255, 255, 255, 0.25), 0 2px 6px rgba(0, 0, 0, 0.2);
+  animation: dc-pz-pop 0.14s ease-out;
+}
+
+@keyframes dc-pz-pop {
+  from { transform: scale(0.85); }
+  to { transform: scale(1); }
+}
+
+/* Mines */
+.dc-mines-board {
+  display: grid;
+  grid-template-columns: repeat(9, min(8.2vw, 36px));
+  gap: 3px;
+  padding: 8px;
+  background: rgba(42, 26, 14, 0.55);
+  border-radius: 14px;
+  border: 2px solid rgba(201, 169, 97, 0.35);
+}
+
+.dc-mines-cell {
+  width: min(8.2vw, 36px);
+  height: min(8.2vw, 36px);
+  min-width: 32px;
+  min-height: 32px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.dc-mines-cell.hidden-cell {
+  background: linear-gradient(145deg, #5a4030, #3d2817);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.dc-mines-cell.revealed {
+  background: #E8D5A3;
+  color: #0D2240;
+}
+
+.dc-mines-cell.flagged {
+  background: #0D2240;
+  color: #C9A961;
+  font-size: 1rem;
+}
+
+.dc-mines-cell.mine {
+  background: #9C1E1E;
+}
+
+.dc-mines-cell.n1 { color: #0D2240; }
+.dc-mines-cell.n2 { color: #0F5C2F; }
+.dc-mines-cell.n3 { color: #9C1E1E; }
+.dc-mines-cell.n4 { color: #5a3d8a; }
+
+.dc-mines-flag.active {
+  background: #9C1E1E;
+  color: #fff;
+}
+
+/* Slide 15 */
+.dc-slide-board {
+  display: grid;
+  grid-template-columns: repeat(4, min(18vw, 72px));
+  grid-template-rows: repeat(4, min(18vw, 72px));
+  gap: 6px;
+  padding: 10px;
+  background: rgba(13, 34, 64, 0.45);
+  border-radius: 14px;
+  border: 2px solid rgba(201, 169, 97, 0.35);
+}
+
+.dc-slide-cell {
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(145deg, #F8F1E3, #E8D5A3);
+  color: #0D2240;
+  font-family: 'Playfair Display', Georgia, serif;
+  font-size: clamp(1.1rem, 4.5vw, 1.6rem);
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 44px;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  touch-action: manipulation;
+}
+
+.dc-slide-cell.empty {
+  background: rgba(62, 42, 24, 0.35);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
+  cursor: default;
+  pointer-events: none;
+}
+
+body.dc-mode-puzzle .dc-update-banner {
+  bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
 .dc-update-banner {
