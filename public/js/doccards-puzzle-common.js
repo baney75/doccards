@@ -34,7 +34,10 @@
     },
 
     pauseAll: function () {
-      var apis = ["DCWoodblock", "DC2048", "DCMines", "DCSlide"];
+      var apis = [
+        "DCWoodblock", "DC2048", "DCMines", "DCSlide",
+        "DCSnake", "DCMemory", "DCSimon", "DCLights"
+      ];
       var i;
       for (i = 0; i < apis.length; i++) {
         var api = root[apis[i]];

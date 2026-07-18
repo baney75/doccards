@@ -1,4 +1,4 @@
-var CACHE_NAME = 'doccards-v30';
+var CACHE_NAME = 'doccards-v31';
 // Include every size pickThemeSize() may choose (79 on small non-retina).
 var CARD_SIZES = [79, 95, 122, 244];
 var SUITS = ['s', 'h', 'c', 'd'];
@@ -67,6 +67,10 @@ var PRECACHE_URLS = [
   asset('/js/doccards-2048.js'),
   asset('/js/doccards-mines.js'),
   asset('/js/doccards-slide.js'),
+  asset('/js/doccards-snake.js'),
+  asset('/js/doccards-memory.js'),
+  asset('/js/doccards-simon.js'),
+  asset('/js/doccards-lights.js'),
   asset('/js/doccards-hub.js'),
   asset('/brand-mark.webp'),
   asset('/brand-mark.png'),

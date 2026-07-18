@@ -2,7 +2,7 @@
   "id": "/doccards/",
   "name": "Doc's Cards",
   "short_name": "Doc's Cards",
-  "description": "Solitaire, Wood Block, 2048, Mines & Slide 15 — offline, ad-free, installable.",
+  "description": "Solitaire, Wood Block, 2048, Mines, Slide 15, Snake, Memory, Simon & Lights Out — offline, ad-free, installable.",
   "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
@@ -74,6 +74,18 @@
       "name": "Mines",
       "short_name": "Mines",
       "url": "./?mode=mines",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Snake",
+      "short_name": "Snake",
+      "url": "./?mode=snake",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Memory",
+      "short_name": "Memory",
+      "url": "./?mode=memory",
       "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
     }
   ],

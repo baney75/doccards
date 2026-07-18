@@ -36,6 +36,38 @@
       tag: "Slide tiles into order · classic 4×4",
       toast: "Slide 15 — tap tiles next to the gap!",
       api: "DCSlide"
+    },
+    {
+      id: "snake",
+      label: "Snake",
+      short: "Snake",
+      tag: "Swipe to steer · eat gold · grow long",
+      toast: "Snake — swipe or tap arrows to steer!",
+      api: "DCSnake"
+    },
+    {
+      id: "memory",
+      label: "Memory",
+      short: "Memory",
+      tag: "Flip cards · match all eight pairs",
+      toast: "Memory — find every matching pair!",
+      api: "DCMemory"
+    },
+    {
+      id: "simon",
+      label: "Simon",
+      short: "Simon",
+      tag: "Watch the pattern · repeat it back",
+      toast: "Simon — watch, then tap the same sequence!",
+      api: "DCSimon"
+    },
+    {
+      id: "lights",
+      label: "Lights Out",
+      short: "Lights",
+      tag: "Toggle neighbors · turn every light off",
+      toast: "Lights Out — tap until the board is dark!",
+      api: "DCLights"
     }
   ];
 
@@ -85,10 +117,15 @@
     openChooser: function () {
       if (root.Y && root.Y.one) {
         var node = root.Y.one("#choose_game");
-        if (node) {
+        if (node && typeof node.simulate === "function") {
           node.simulate("click");
           return;
         }
+      }
+      var chooseBtn = document.getElementById("choose_game");
+      if (chooseBtn) {
+        chooseBtn.click();
+        return;
       }
       var chooser = document.getElementById("game-chooser");
       if (chooser) chooser.classList.add("show");
