@@ -189,9 +189,9 @@
         "</div>" +
         '<div class="dc-wb-board-wrap"><div class="dc-wb-board" id="dc-wb-board" role="grid" aria-label="Wood block grid"></div></div>' +
         '<div class="dc-wb-tray" id="dc-wb-tray" role="group" aria-label="Block pieces"></div>' +
-        '<div class="dc-wb-over hidden" id="dc-wb-over" role="dialog" aria-modal="true">' +
+        '<div class="dc-wb-over hidden" id="dc-wb-over" role="dialog" aria-modal="true" aria-labelledby="dc-wb-over-title">' +
         '<div class="dc-wb-over-card">' +
-        '<p class="dc-wb-over-title">Beautiful run!</p>' +
+        '<p class="dc-wb-over-title" id="dc-wb-over-title">Beautiful run!</p>' +
         '<p class="dc-wb-over-score">Score <strong id="dc-wb-over-score">0</strong></p>' +
         '<button type="button" class="doccards-btn" id="dc-wb-retry">Play again</button>' +
         "</div></div>" +
@@ -398,12 +398,25 @@
 
       slot.addEventListener("mousedown", function (e) {
         e.preventDefault();
-        startDrag(e.clientX, e.clientY);
-        var onMove = function (ev) { moveDrag(ev.clientX, ev.clientY); };
+        var mouseStartX = e.clientX;
+        var mouseStartY = e.clientY;
+        var mouseDragging = false;
+        var onMove = function (ev) {
+          if (!mouseDragging) {
+            var dx = ev.clientX - mouseStartX;
+            var dy = ev.clientY - mouseStartY;
+            if (dx * dx + dy * dy < dragThreshold * dragThreshold) return;
+            mouseDragging = true;
+            startDrag(ev.clientX, ev.clientY);
+          } else {
+            moveDrag(ev.clientX, ev.clientY);
+          }
+        };
         var onUp = function (ev) {
           document.removeEventListener("mousemove", onMove);
           document.removeEventListener("mouseup", onUp);
-          endDrag(ev.clientX, ev.clientY, true);
+          if (mouseDragging) endDrag(ev.clientX, ev.clientY, true);
+          else self._selectTray(index);
         };
         document.addEventListener("mousemove", onMove);
         document.addEventListener("mouseup", onUp);
@@ -595,6 +608,10 @@
       var scoreEl = document.getElementById("dc-wb-over-score");
       if (scoreEl) scoreEl.textContent = String(this._score);
       if (over) over.classList.remove("hidden");
+      var retry = document.getElementById("dc-wb-retry");
+      if (retry && retry.focus) {
+        setTimeout(function () { retry.focus(); }, 50);
+      }
       if (typeof DCSound !== "undefined" && DCSound.milestone) DCSound.milestone();
       else if (typeof DCSound !== "undefined" && DCSound.cardPlace) DCSound.cardPlace();
       if (typeof DCFX !== "undefined" && DCFX.burstConfetti) DCFX.burstConfetti(24, true);

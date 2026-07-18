@@ -2400,6 +2400,12 @@ body.dc-mode-woodblock #a11y-toggle {
   display: none !important;
 }
 
+body.dc-mode-woodblock .card,
+body.dc-mode-woodblock .stack {
+  visibility: hidden !important;
+  pointer-events: none !important;
+}
+
 body.dc-mode-woodblock.solitairey_body {
   background-image:
     radial-gradient(ellipse at 50% 18%, rgba(232, 213, 163, 0.1) 0%, rgba(0, 0, 0, 0) 42%),
@@ -2655,4 +2661,52 @@ body.dc-mode-woodblock.solitairey_body {
   }
   .dc-confetti,
   .dc-spark { display: none !important; }
+}
+
+.dc-update-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(72px + env(safe-area-inset-bottom));
+  z-index: 14000;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 10px 12px;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(180deg, rgba(13, 34, 64, 0.97) 0%, rgba(9, 24, 48, 0.98) 100%);
+  border-top: 1px solid rgba(232, 213, 163, 0.35);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.35);
+  animation: dc-win-in 0.35s ease-out;
+}
+
+.dc-update-banner.hidden {
+  display: none !important;
+}
+
+.dc-update-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.dc-update-text {
+  flex: 1 1 180px;
+  color: #F5E6C8;
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.dc-update-btn,
+.dc-update-dismiss {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 8px 16px;
+}
+
+body.dc-mode-woodblock .dc-update-banner {
+  bottom: calc(16px + env(safe-area-inset-bottom));
 }

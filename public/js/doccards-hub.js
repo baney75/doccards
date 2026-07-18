@@ -21,6 +21,8 @@
         } catch (e) {}
       }
       this._ensureShell();
+      this._renderTabs();
+      this._setChooserPanel(this.mode);
     },
 
     onChooserOpen: function () {
@@ -60,25 +62,46 @@
 
     _renderTabs: function () {
       var chooser = document.getElementById("game-chooser-contents");
-      if (!chooser || document.getElementById("dc-hub-tabs")) return;
-      var self = this;
-      var tabs = document.createElement("div");
-      tabs.id = "dc-hub-tabs";
-      tabs.className = "dc-hub-tabs";
-      tabs.setAttribute("role", "tablist");
-      tabs.innerHTML =
-        '<button type="button" role="tab" id="dc-tab-solitaire" aria-selected="true" aria-controls="dc-hub-panel-solitaire">Solitaire</button>' +
-        '<button type="button" role="tab" id="dc-tab-woodblock" aria-selected="false" aria-controls="dc-hub-panel-woodblock">Wood Block</button>';
-      var title = chooser.querySelector(".chooser-title");
-      if (title) chooser.insertBefore(tabs, title);
-      else chooser.insertBefore(tabs, chooser.firstChild);
+      if (!chooser) return;
+      if (!document.getElementById("dc-hub-tabs")) {
+        var self = this;
+        var tabs = document.createElement("div");
+        tabs.id = "dc-hub-tabs";
+        tabs.className = "dc-hub-tabs";
+        tabs.setAttribute("role", "tablist");
+        tabs.innerHTML =
+          '<button type="button" role="tab" id="dc-tab-solitaire" aria-selected="true" aria-controls="dc-hub-panel-solitaire">Solitaire</button>' +
+          '<button type="button" role="tab" id="dc-tab-woodblock" aria-selected="false" aria-controls="dc-hub-panel-woodblock">Wood Block</button>';
+        var title = chooser.querySelector(".chooser-title");
+        if (title) chooser.insertBefore(tabs, title);
+        else chooser.insertBefore(tabs, chooser.firstChild);
+      }
+      this._bindTabEvents();
+    },
 
-      document.getElementById("dc-tab-solitaire").addEventListener("click", function () {
-        self.setChooserTab(MODES.solitaire);
-      });
-      document.getElementById("dc-tab-woodblock").addEventListener("click", function () {
-        self.setChooserTab(MODES.woodblock);
-      });
+    _bindTabEvents: function () {
+      var self = this;
+      var sol = document.getElementById("dc-tab-solitaire");
+      var wb = document.getElementById("dc-tab-woodblock");
+      if (sol && !sol._dcBound) {
+        sol._dcBound = true;
+        sol.addEventListener("click", function () {
+          self.setChooserTab(MODES.solitaire);
+        });
+      }
+      if (wb && !wb._dcBound) {
+        wb._dcBound = true;
+        wb.addEventListener("click", function () {
+          self.setChooserTab(MODES.woodblock);
+        });
+      }
+      var launch = document.getElementById("dc-wb-launch");
+      if (launch && !launch._dcBound) {
+        launch._dcBound = true;
+        launch.addEventListener("click", function () {
+          self.launchWoodblock();
+        });
+      }
     },
 
     setChooserTab: function (mode) {
@@ -91,14 +114,19 @@
       }
     },
 
-    setMode: function (mode, persist) {
+    setMode: function (mode, persist, fromUser) {
       if (mode !== MODES.solitaire && mode !== MODES.woodblock) return;
+      var prev = this.mode;
+      var changed = prev !== mode;
       this.mode = mode;
       if (persist !== false) {
         try { localStorage.setItem(MODE_KEY, mode); } catch (e) {}
       }
-      if (mode === MODES.woodblock) this.enterWoodblock(true);
-      else this.enterSolitaire(true);
+      if (mode === MODES.woodblock) {
+        if (changed || fromUser) this.enterWoodblock(!!fromUser);
+      } else if (changed || fromUser) {
+        this.enterSolitaire(!!fromUser);
+      }
     },
 
     enterSolitaire: function (fromUser) {
@@ -141,7 +169,7 @@
     launchWoodblock: function () {
       var self = this;
       var run = function () {
-        self.setMode(MODES.woodblock, true);
+        self.setMode(MODES.woodblock, true, true);
         var chooser = document.getElementById("game-chooser");
         if (chooser) chooser.classList.remove("show");
         if (root.Y && root.Y.Solitaire && root.Y.Solitaire.Application && root.Y.Solitaire.Application.GameChooser) {
@@ -160,7 +188,7 @@
     },
 
     launchSolitaire: function (gameId) {
-      this.setMode(MODES.solitaire, true);
+      this.setMode(MODES.solitaire, true, true);
       if (gameId && root.Y && root.Y.on) {
         try {
           root.Y.fire("newGameRun");
@@ -183,8 +211,12 @@
         else cards[i].classList.add("dc-hidden-mode");
       }
       if (typeof DCUI !== "undefined") {
-        if (visible) DCUI.showHUD();
-        else DCUI.hideHUD();
+        if (visible) {
+          DCUI.showHUD();
+        } else {
+          DCUI.hideHUD();
+          if (typeof DCUI.resetHUD === "function") DCUI.resetHUD();
+        }
       }
     },
 
@@ -235,14 +267,13 @@
           '<button type="button" class="doccards-btn dc-wb-play-btn" id="dc-wb-launch">Play</button>' +
           "</div>";
         contents.appendChild(wbPanel);
-        var self = this;
-        document.getElementById("dc-wb-launch").addEventListener("click", function () {
-          self.launchWoodblock();
-        });
       }
+      this._bindTabEvents();
 
       if (solPanel) solPanel.classList.toggle("hidden", mode !== MODES.solitaire);
       if (wbPanel) wbPanel.classList.toggle("hidden", mode !== MODES.woodblock);
+      if (descriptions) descriptions.classList.toggle("hidden", mode !== MODES.solitaire);
+      if (filter) filter.classList.toggle("hidden", mode !== MODES.solitaire);
     }
   };
 

@@ -259,7 +259,8 @@ define(["./solitaire"], function (solitaire) {
             },
 
             _scrollChooserTo: function (li) {
-                var chooser = document.getElementById("game-chooser");
+                var chooser = document.getElementById("game-chooser-contents") ||
+                    document.getElementById("game-chooser");
                 if (!chooser || !li) return;
                 // Scroll ONLY the chooser overlay — never Element.scrollIntoView
                 // (that walks ancestors and can yank the solitaire board).
@@ -298,7 +299,8 @@ define(["./solitaire"], function (solitaire) {
                 chooser.addClass("show");
                 // Reset overlay scroll; do not touch document scroll for content.
                 try {
-                    var node = document.getElementById("game-chooser");
+                    var node = document.getElementById("game-chooser-contents") ||
+                        document.getElementById("game-chooser");
                     if (node) node.scrollTop = 0;
                 } catch (e) {}
                 this._lockBoardScroll();
@@ -744,8 +746,20 @@ define(["./solitaire"], function (solitaire) {
             window.Y = Y;
             if (Y.Solitaire) {
                 Y.Solitaire.offset = Y.Solitaire.offset || { left: 40, top: 70 };
-                // Layout origin below header+menu (do NOT also put this in padding.y).
-                Y.Solitaire.offset.top = 108;
+                // Layout origin below header+menu + notch safe area.
+                Y.Solitaire.offset.top = (function () {
+                    var menu = document.getElementById("menu");
+                    var header = document.querySelector(".doccards-header");
+                    var h = 0;
+                    if (header) h += header.offsetHeight || 0;
+                    if (menu) h += menu.offsetHeight || 0;
+                    var safe = 0;
+                    try {
+                        var st = getComputedStyle(document.documentElement);
+                        safe = parseInt(st.getPropertyValue("env(safe-area-inset-top)"), 10) || 0;
+                    } catch (e) {}
+                    return Math.max(96, h + safe + 8);
+                })();
                 Y.Solitaire.padding = Y.Solitaire.padding || { x: 40, y: 50 };
                 // Bottom chrome only (FABs / footer) — not another header clearance.
                 Y.Solitaire.padding.y = 72;
@@ -755,6 +769,9 @@ define(["./solitaire"], function (solitaire) {
         }
 
         function resize() {
+            if (typeof DCHub !== "undefined" && DCHub.mode === "woodblock") {
+                return;
+            }
             if (!active.game) {
                 return;
             }

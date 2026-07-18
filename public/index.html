@@ -100,18 +100,29 @@ requirejs.config({
 
             function offerUpdate(worker) {
                 pendingUpdate = worker;
-                if (typeof DCUI !== 'undefined' && DCUI._showToast) {
-                    DCUI._showToast('Update ready — tap here to refresh', 'praise');
-                    var toast = document.getElementById('dc-toast');
-                    if (toast) {
-                        toast.style.cursor = 'pointer';
-                        toast.addEventListener('click', function () {
-                            if (pendingUpdate && pendingUpdate.postMessage) {
-                                pendingUpdate.postMessage({ type: 'SKIP_WAITING' });
-                            }
-                            window.location.reload();
-                        }, { once: true });
+                if (document.getElementById('dc-update-banner')) return;
+                var banner = document.createElement('div');
+                banner.id = 'dc-update-banner';
+                banner.className = 'dc-update-banner';
+                banner.setAttribute('role', 'status');
+                banner.innerHTML =
+                    '<img src="pwa-maskable-512.png" alt="" class="dc-update-mark" width="36" height="36" />' +
+                    '<span class="dc-update-text">Doc refreshed — finish your hand, then update</span>' +
+                    '<button type="button" class="doccards-btn dc-update-btn" id="dc-update-now">Update now</button>' +
+                    '<button type="button" class="doccards-btn doccards-btn-secondary dc-update-dismiss" id="dc-update-later">Later</button>';
+                document.body.appendChild(banner);
+                document.getElementById('dc-update-now').addEventListener('click', function () {
+                    window.__dcForceUpdate = true;
+                    if (pendingUpdate && pendingUpdate.postMessage) {
+                        pendingUpdate.postMessage({ type: 'SKIP_WAITING' });
                     }
+                    window.location.reload();
+                });
+                document.getElementById('dc-update-later').addEventListener('click', function () {
+                    banner.classList.add('hidden');
+                });
+                if (typeof DCUI !== 'undefined' && DCUI._showToast) {
+                    DCUI._showToast('Update ready when you are', 'praise');
                 }
             }
 
@@ -204,6 +215,10 @@ requirejs.config({
     <div id="game-chooser">
         <button id="close-chooser">Return to game</button>
         <div id="game-chooser-contents">
+            <div id="dc-hub-tabs" class="dc-hub-tabs" role="tablist">
+                <button type="button" role="tab" id="dc-tab-solitaire" class="active" aria-selected="true" aria-controls="dc-hub-panel-solitaire">Solitaire</button>
+                <button type="button" role="tab" id="dc-tab-woodblock" aria-selected="false" aria-controls="dc-hub-panel-woodblock">Wood Block</button>
+            </div>
             <h2 class="chooser-title">Pick your game</h2>
             <ul id="descriptions">
                 <li id="agnes">
@@ -463,6 +478,14 @@ requirejs.config({
                     </div>
                 </li>
             </ul>
+            <div id="dc-hub-panel-woodblock" class="dc-hub-panel hidden">
+                <div class="dc-wb-chooser">
+                    <img src="pwa-maskable-512.png" alt="" class="dc-wb-chooser-mark" width="72" height="72" />
+                    <h3>Wood Block</h3>
+                    <p class="dc-wb-chooser-tag">Place blocks · clear lines · beat your best</p>
+                    <button type="button" class="doccards-btn dc-wb-play-btn" id="dc-wb-launch">Play</button>
+                </div>
+            </div>
         </div>
     </div>
     <footer id="site-footer">
