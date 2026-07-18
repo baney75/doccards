@@ -16,8 +16,12 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+# Site is published from the gh-pages branch (repo Settings → Pages → Deploy from branch).
+# peaceiris/actions-gh-pages updates that branch; no separate deploy-pages job needed
+# (that job failed under github-pages environment branch policies).
+
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -35,29 +39,10 @@ jobs:
       - name: Build site
         run: npm run pages:build
 
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: _site
-
-      - name: Publish gh-pages branch (branch deploy fallback)
+      - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_dir: _site
           force_orphan: true
           enable_jekyll: false
-
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Configure Pages
-        uses: actions/configure-pages@v5
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
