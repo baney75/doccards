@@ -79,9 +79,21 @@
       this.updateDealNumber();
       this.showCoachIfNeeded();
       this.showIosInstallHintIfNeeded();
+      this._warmCardsCache();
       if (typeof DCHub !== "undefined" && DCHub.onReady) {
         DCHub.onReady();
       }
+    },
+
+    _warmCardsCache: function () {
+      try {
+        if (!("serviceWorker" in navigator) || !navigator.serviceWorker.controller) return;
+        var size = 122;
+        if (root.Y && root.Y.Solitaire && root.Y.Solitaire.Application && root.Y.Solitaire.Application.pickThemeSize) {
+          size = root.Y.Solitaire.Application.pickThemeSize();
+        }
+        navigator.serviceWorker.controller.postMessage({ type: "WARM_CARDS", size: size });
+      } catch (e) {}
     },
 
     showIosInstallHintIfNeeded: function () {
@@ -805,6 +817,7 @@
       var btns = document.querySelectorAll(".filter-btn");
       for (var i = 0; i < btns.length; i++) {
         btns[i].classList.toggle("active", btns[i].dataset.filter === key);
+        btns[i].setAttribute("aria-pressed", btns[i].dataset.filter === key ? "true" : "false");
       }
     },
 

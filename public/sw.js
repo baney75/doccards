@@ -1,4 +1,4 @@
-var CACHE_NAME = 'doccards-v24';
+var CACHE_NAME = 'doccards-v25';
 // Include every size pickThemeSize() may choose (79 on small non-retina).
 var CARD_SIZES = [79, 95, 122, 244];
 var SUITS = ['s', 'h', 'c', 'd'];
@@ -143,7 +143,8 @@ self.addEventListener('install', function (event) {
         self.skipWaiting();
         // Warm default sharp deck before install finishes so offline
         // opens are not empty placeholders; other sizes continue in background.
-        var priority = cardImagesForSize(122);
+        var priority = cardImagesForSize(122).concat(cardImagesForSize(244));
+        LAYOUT_ICONS.forEach(function (u) { priority.push(u); });
         return Promise.allSettled(
           priority.map(function (url) {
             return cacheFile(cache, url);
@@ -180,7 +181,7 @@ self.addEventListener('fetch', function (event) {
   if (req.method !== 'GET') return;
   if (url.origin !== self.location.origin) return;
 
-  if (req.mode === 'navigate') {
+  if (req.mode === 'navigate' || req.destination === 'document') {
     event.respondWith(
       fetch(req).then(function (resp) {
         stashCopy(asset('/index.html'), resp);
@@ -245,6 +246,17 @@ self.addEventListener('message', function (event) {
     self.skipWaiting();
   }
   if (event.data && event.data.type === 'WARM_CARDS') {
-    warmCardsInBackground();
+    var size = event.data.size || 122;
+    caches.open(CACHE_NAME).then(function (cache) {
+      var urls = cardImagesForSize(size);
+      if (size !== 244) {
+        urls = urls.concat(cardImagesForSize(244));
+      }
+      return Promise.allSettled(urls.map(function (url) {
+        return cacheFile(cache, url);
+      }));
+    }).then(function () {
+      warmCardsInBackground();
+    }).catch(function () {});
   }
 });

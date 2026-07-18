@@ -1405,16 +1405,22 @@ img.stack {
 
 .fav-star {
   position: absolute;
-  top: 8px;
-  right: 8px;
-  background: none;
-  border: none;
-  font-size: 1.3rem;
+  top: 4px;
+  right: 4px;
+  background: rgba(248, 241, 227, 0.92);
+  border: 1px solid rgba(201, 169, 97, 0.45);
+  border-radius: 50%;
+  font-size: 1.15rem;
   color: #C9A961;
   cursor: pointer;
   padding: 0;
-  min-height: 32px;
-  min-width: 32px;
+  min-height: 44px;
+  min-width: 44px;
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   -webkit-tap-highlight-color: transparent;
   z-index: 10;
   line-height: 1;
@@ -2386,7 +2392,7 @@ body.dc-mode-woodblock .solitairey_body {
   justify-content: flex-start;
   gap: 12px;
   padding: 8px 12px 16px;
-  --wb-cell: min(9vw, 42px);
+  --wb-cell: max(44px, min(10vw, 52px));
 }
 
 .dc-wb-top {
@@ -2499,8 +2505,10 @@ body.dc-mode-woodblock .solitairey_body {
   cursor: grab;
 }
 
-.dc-wb-tray-slot.dragging {
-  opacity: 0.45;
+.dc-wb-tray-slot.selected {
+  border-color: #C9A961;
+  box-shadow: 0 0 0 2px rgba(201, 169, 97, 0.55);
+  background: rgba(13, 34, 64, 0.5);
 }
 
 .dc-wb-tray-slot.empty {

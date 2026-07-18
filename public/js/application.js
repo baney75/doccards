@@ -287,12 +287,9 @@ define(["./solitaire"], function (solitaire) {
                     this.fade = true;
                 }
 
-                // Coach tip card sits above the chooser — dismiss so it cannot block Play.
+                // Coach tip card sits above the chooser — dismiss visually only; do not mark seen until user finishes tips.
                 var coach = document.getElementById("dc-coach");
                 if (coach) {
-                    try {
-                        localStorage.setItem("doccards_coach_seen", "1");
-                    } catch (e) {}
                     coach.remove();
                 }
 
@@ -326,8 +323,12 @@ define(["./solitaire"], function (solitaire) {
                     return;
                 }
 
-                this.hide();
-                playGame(this.selected);
+                var self = this;
+                var run = function () {
+                    self.hide();
+                    playGame(self.selected);
+                };
+                confirmDestructive("Switch games? Your current hand will be lost.", run);
             },
 
             select: function (game) {
@@ -723,7 +724,10 @@ define(["./solitaire"], function (solitaire) {
 
             Preloader.preload();
             Preloader.loaded(function () {
-                playGame(active.name);
+                var wbMode = typeof DCHub !== "undefined" && DCHub.mode === "woodblock";
+                if (!wbMode) {
+                    playGame(active.name);
+                }
                 if (typeof DCUI !== "undefined" && DCUI.afterGameReady) {
                     DCUI.afterGameReady();
                 }

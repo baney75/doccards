@@ -85,6 +85,10 @@
       this._chooserTab = mode;
       this._setTab(mode);
       this._setChooserPanel(mode);
+      var title = document.querySelector(".chooser-title");
+      if (title) {
+        title.textContent = mode === MODES.woodblock ? "Wood Block" : "Pick a solitaire";
+      }
     },
 
     setMode: function (mode, persist) {

@@ -11,8 +11,8 @@
     { id: "2v", cells: [[0, 0], [1, 0]], color: "#E8D5A3" },
     { id: "3h", cells: [[0, 0], [0, 1], [0, 2]], color: "#0F5C2F" },
     { id: "3v", cells: [[0, 0], [1, 0], [2, 0]], color: "#0F5C2F" },
-    { id: "4h", cells: [[0, 0], [0, 1], [0, 2], [0, 3]], color: "#16355c" },
-    { id: "4v", cells: [[0, 0], [1, 0], [2, 0], [3, 0]], color: "#16355c" },
+    { id: "4h", cells: [[0, 0], [0, 1], [0, 2], [0, 3]], color: "#0D2240" },
+    { id: "4v", cells: [[0, 0], [1, 0], [2, 0], [3, 0]], color: "#0D2240" },
     { id: "5h", cells: [[0, 0], [0, 1], [0, 2], [0, 3], [0, 4]], color: "#0D2240" },
     { id: "sq", cells: [[0, 0], [0, 1], [1, 0], [1, 1]], color: "#9C1E1E" },
     { id: "sq3", cells: [[0, 0], [0, 1], [0, 2], [1, 0], [1, 1], [1, 2], [2, 0], [2, 1], [2, 2]], color: "#7a1616" },
@@ -22,8 +22,8 @@
     { id: "L4", cells: [[0, 0], [0, 1], [1, 1], [2, 1]], color: "#C9A961" },
     { id: "T", cells: [[0, 0], [0, 1], [0, 2], [1, 1]], color: "#0F5C2F" },
     { id: "T2", cells: [[0, 1], [1, 0], [1, 1], [1, 2]], color: "#0F5C2F" },
-    { id: "Z", cells: [[0, 0], [0, 1], [1, 1], [1, 2]], color: "#16355c" },
-    { id: "S", cells: [[0, 1], [0, 2], [1, 0], [1, 1]], color: "#16355c" }
+    { id: "Z", cells: [[0, 0], [0, 1], [1, 1], [1, 2]], color: "#0D2240" },
+    { id: "S", cells: [[0, 1], [0, 2], [1, 0], [1, 1]], color: "#0D2240" }
   ];
 
   function cloneGrid(g) {
@@ -131,6 +131,7 @@
     _combo: 0,
     _drag: null,
     _ghost: null,
+    _selectedIndex: null,
 
     mount: function (rootEl) {
       if (!rootEl) return;
@@ -196,7 +197,15 @@
         "</div></div>" +
         "</div>";
 
-      document.getElementById("dc-wb-new").addEventListener("click", function () { self.newGame(); });
+      document.getElementById("dc-wb-new").addEventListener("click", function () {
+        if (self._score > 0 && typeof DCUI !== "undefined" && DCUI.confirmAction) {
+          DCUI.confirmAction("Start a fresh Wood Block board? Your score resets.", function () {
+            self.newGame();
+          });
+        } else {
+          self.newGame();
+        }
+      });
       document.getElementById("dc-wb-games").addEventListener("click", function () {
         if (typeof DCHub !== "undefined" && DCHub.openChooser) DCHub.openChooser();
       });
@@ -206,6 +215,35 @@
       });
       this._paintBoard();
       this._paintTray();
+      this._bindBoardTap();
+    },
+
+    _bindBoardTap: function () {
+      var board = document.getElementById("dc-wb-board");
+      if (!board || board._dcTapBound) return;
+      board._dcTapBound = true;
+      var self = this;
+      board.addEventListener("click", function (e) {
+        var cell = e.target && e.target.closest ? e.target.closest(".dc-wb-cell") : null;
+        if (!cell || self._selectedIndex === null) return;
+        var r = parseInt(cell.getAttribute("data-r"), 10);
+        var c = parseInt(cell.getAttribute("data-c"), 10);
+        if (isNaN(r) || isNaN(c)) return;
+        var rect = cell.getBoundingClientRect();
+        self._placeAt(self._selectedIndex, r, c, rect.left + rect.width / 2, rect.top + rect.height / 2);
+      });
+    },
+
+    _selectTray: function (index) {
+      this._selectedIndex = index;
+      var slots = document.querySelectorAll(".dc-wb-tray-slot");
+      var i;
+      for (i = 0; i < slots.length; i++) {
+        slots[i].classList.toggle("selected", parseInt(slots[i].dataset.index, 10) === index);
+      }
+      if (typeof DCUI !== "undefined" && DCUI._showToast) {
+        DCUI._showToast("Tap the board to place", "deal");
+      }
     },
 
     _paintBoard: function () {
@@ -370,6 +408,12 @@
         var t = (e.changedTouches && e.changedTouches[0]) || { clientX: 0, clientY: 0 };
         endDrag(t.clientX, t.clientY);
       });
+
+      slot.addEventListener("click", function (e) {
+        if (self._drag) return;
+        e.stopPropagation();
+        self._selectTray(index);
+      });
     },
 
     _moveGhost: function (x, y) {
@@ -423,13 +467,17 @@
       if (!this._drag) return false;
       var cell = this._boardCellAt(clientX, clientY);
       if (!cell) return false;
-      var shape = this._drag.shape;
-      var idx = this._drag.index;
-      if (!canPlace(this._grid, shape, cell.r, cell.c)) return false;
+      return this._placeAt(this._drag.index, cell.r, cell.c, clientX, clientY);
+    },
 
-      this._grid = placeShape(this._grid, shape, cell.r, cell.c);
+    _placeAt: function (idx, row, col, clientX, clientY) {
+      var shape = this._tray[idx];
+      if (!shape) return false;
+      if (!canPlace(this._grid, shape, row, col)) return false;
+      this._grid = placeShape(this._grid, shape, row, col);
       this._score += shape.cells.length;
       this._tray[idx] = null;
+      this._selectedIndex = null;
 
       var clears = findClears(this._grid);
       var lines = clears.rows.length + clears.cols.length;

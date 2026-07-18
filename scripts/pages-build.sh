@@ -12,5 +12,6 @@ for path in js/yui-unpack/yui/api js/yui-unpack/yui/docs js/yui-unpack/yui/tests
 done
 
 find _site -name .DS_Store -delete 2>/dev/null || true
+touch _site/.nojekyll
 
 du -sh _site _site/js/yui-unpack 2>/dev/null
