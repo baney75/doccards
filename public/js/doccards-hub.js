@@ -139,17 +139,24 @@
     },
 
     launchWoodblock: function () {
-      this.setMode(MODES.woodblock, true);
-      var chooser = document.getElementById("game-chooser");
-      if (chooser) chooser.classList.remove("show");
-      if (root.Y && root.Y.Solitaire && root.Y.Solitaire.Application && root.Y.Solitaire.Application.GameChooser) {
-        root.Y.Solitaire.Application.GameChooser.hide();
+      var self = this;
+      var run = function () {
+        self.setMode(MODES.woodblock, true);
+        var chooser = document.getElementById("game-chooser");
+        if (chooser) chooser.classList.remove("show");
+        if (root.Y && root.Y.Solitaire && root.Y.Solitaire.Application && root.Y.Solitaire.Application.GameChooser) {
+          root.Y.Solitaire.Application.GameChooser.hide();
+        }
+      };
+      var moves = 0;
+      try {
+        if (typeof DCUI !== "undefined" && DCUI._moveCount) moves = DCUI._moveCount;
+      } catch (e) {}
+      if (moves > 0 && typeof DCUI !== "undefined" && DCUI.confirmAction) {
+        DCUI.confirmAction("Leave this hand and play Wood Block?", run);
+      } else {
+        run();
       }
-      document.documentElement.classList.remove("dc-chooser-open");
-      document.body.classList.remove("dc-chooser-open", "scrollable");
-      document.body.style.position = "";
-      document.body.style.top = "";
-      document.body.style.overflow = "";
     },
 
     launchSolitaire: function (gameId) {
@@ -162,12 +169,14 @@
     },
 
     _setSolitaireChrome: function (visible) {
-      var ids = ["menu", "dc-fab-bar", "site-footer"];
+      var ids = ["menu", "site-footer"];
       var i;
       for (i = 0; i < ids.length; i++) {
         var node = document.getElementById(ids[i]);
         if (node) node.classList.toggle("dc-hidden-mode", !visible);
       }
+      var fab = document.getElementById("dc-fab-bar");
+      if (fab) fab.classList.toggle("dc-hidden-mode", false);
       var cards = document.querySelectorAll(".card, .stack");
       for (i = 0; i < cards.length; i++) {
         if (visible) cards[i].classList.remove("dc-hidden-mode");

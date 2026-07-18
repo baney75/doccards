@@ -224,14 +224,25 @@
       board._dcTapBound = true;
       var self = this;
       board.addEventListener("click", function (e) {
-        var cell = e.target && e.target.closest ? e.target.closest(".dc-wb-cell") : null;
-        if (!cell || self._selectedIndex === null) return;
-        var r = parseInt(cell.getAttribute("data-r"), 10);
-        var c = parseInt(cell.getAttribute("data-c"), 10);
-        if (isNaN(r) || isNaN(c)) return;
-        var rect = cell.getBoundingClientRect();
-        self._placeAt(self._selectedIndex, r, c, rect.left + rect.width / 2, rect.top + rect.height / 2);
+        self._handleBoardTap(e.target);
       });
+      board.addEventListener("touchend", function (e) {
+        if (!e.changedTouches || !e.changedTouches[0]) return;
+        var t = e.changedTouches[0];
+        var el = document.elementFromPoint(t.clientX, t.clientY);
+        self._handleBoardTap(el);
+      });
+    },
+
+    _handleBoardTap: function (target) {
+      var cell = target && target.closest ? target.closest(".dc-wb-cell") : null;
+      if (!cell || this._selectedIndex === null) return;
+      var r = parseInt(cell.getAttribute("data-r"), 10);
+      var c = parseInt(cell.getAttribute("data-c"), 10);
+      if (isNaN(r) || isNaN(c)) return;
+      var rect = cell.getBoundingClientRect();
+      var ok = this._placeAt(this._selectedIndex, r, c, rect.left + rect.width / 2, rect.top + rect.height / 2);
+      if (!ok && typeof DCUI !== "undefined" && DCUI.invalidMove) DCUI.invalidMove();
     },
 
     _selectTray: function (index) {
@@ -354,6 +365,11 @@
           }
         }
         document.body.appendChild(ghost);
+        var shell = document.querySelector(".dc-wb-shell");
+        if (shell) {
+          var cellPx = getComputedStyle(shell).getPropertyValue("--wb-cell").trim() || "44px";
+          ghost.style.setProperty("--wb-cell", cellPx);
+        }
         self._ghost = ghost;
         slot.classList.add("dragging");
         self._moveGhost(clientX, clientY);
@@ -366,15 +382,18 @@
         self._highlightDrop(clientX, clientY);
       };
 
-      var endDrag = function (clientX, clientY) {
+      var endDrag = function (clientX, clientY, wasDrag) {
         if (!self._drag) return;
-        var placed = self._tryDrop(clientX, clientY);
+        var placed = false;
+        if (wasDrag) {
+          placed = self._tryDrop(clientX, clientY);
+        }
         if (self._ghost && self._ghost.parentNode) self._ghost.parentNode.removeChild(self._ghost);
         self._ghost = null;
         self._clearHighlight();
         slot.classList.remove("dragging");
         self._drag = null;
-        if (!placed && typeof DCUI !== "undefined" && DCUI.invalidMove) DCUI.invalidMove();
+        if (wasDrag && !placed && typeof DCUI !== "undefined" && DCUI.invalidMove) DCUI.invalidMove();
       };
 
       slot.addEventListener("mousedown", function (e) {
@@ -384,29 +403,49 @@
         var onUp = function (ev) {
           document.removeEventListener("mousemove", onMove);
           document.removeEventListener("mouseup", onUp);
-          endDrag(ev.clientX, ev.clientY);
+          endDrag(ev.clientX, ev.clientY, true);
         };
         document.addEventListener("mousemove", onMove);
         document.addEventListener("mouseup", onUp);
       });
 
+      var touchStartX = 0;
+      var touchStartY = 0;
+      var touchDragging = false;
+      var dragThreshold = 12;
+
       slot.addEventListener("touchstart", function (e) {
         if (!e.touches || !e.touches[0]) return;
-        e.preventDefault();
         var t = e.touches[0];
-        startDrag(t.clientX, t.clientY);
-      }, { passive: false });
+        touchStartX = t.clientX;
+        touchStartY = t.clientY;
+        touchDragging = false;
+      }, { passive: true });
 
       slot.addEventListener("touchmove", function (e) {
-        if (!self._drag || !e.touches || !e.touches[0]) return;
-        e.preventDefault();
-        moveDrag(e.touches[0].clientX, e.touches[0].clientY);
+        if (!e.touches || !e.touches[0]) return;
+        var t = e.touches[0];
+        if (!touchDragging) {
+          var dx = t.clientX - touchStartX;
+          var dy = t.clientY - touchStartY;
+          if (dx * dx + dy * dy < dragThreshold * dragThreshold) return;
+          touchDragging = true;
+          e.preventDefault();
+          startDrag(t.clientX, t.clientY);
+        } else if (self._drag) {
+          e.preventDefault();
+          moveDrag(t.clientX, t.clientY);
+        }
       }, { passive: false });
 
       slot.addEventListener("touchend", function (e) {
-        if (!self._drag) return;
-        var t = (e.changedTouches && e.changedTouches[0]) || { clientX: 0, clientY: 0 };
-        endDrag(t.clientX, t.clientY);
+        if (touchDragging && self._drag) {
+          var t = (e.changedTouches && e.changedTouches[0]) || { clientX: touchStartX, clientY: touchStartY };
+          endDrag(t.clientX, t.clientY, true);
+        } else if (!touchDragging) {
+          self._selectTray(index);
+        }
+        touchDragging = false;
       });
 
       slot.addEventListener("click", function (e) {

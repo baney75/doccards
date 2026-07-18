@@ -755,6 +755,9 @@ define(["./solitaire"], function (solitaire) {
         }
 
         function resize() {
+            if (!active.game) {
+                return;
+            }
             const game = active.game;
             const el = game.container();
             var padding = { x: Y.Solitaire.padding.x, y: Y.Solitaire.padding.y };
