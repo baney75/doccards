@@ -835,7 +835,7 @@
       var tips = [
         "Tap a game card once to play. Star your favorites.",
         "Tap ? for rules. Tap Aa for bigger cards.",
-        "Try Wood Block in Games — clear lines, beat your best score."
+        "Games opens solitaire and puzzles — Wood Block, 2048, Mines, Slide 15."
       ];
       var step = 0;
       var self = this;
