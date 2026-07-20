@@ -407,7 +407,8 @@ YUI.add(
                             hspacing: 1.25,
                             top: 0,
                             left: function () {
-                                return Solitaire.Card.width * 3.75;
+                                var w = window.innerWidth || 800;
+                                return Solitaire.Card.width * (w < 520 ? 3.4 : w < 1024 ? 3.5 : 3.75);
                             },
                         },
                     },
@@ -433,7 +434,8 @@ YUI.add(
                             hspacing: 0,
                             top: 0,
                             left: function () {
-                                return Solitaire.Card.width * 1.5;
+                                var w = window.innerWidth || 800;
+                                return Solitaire.Card.width * (w < 1024 ? 1.25 : 1.5);
                             },
                         },
                     },
@@ -446,7 +448,8 @@ YUI.add(
                         layout: {
                             hspacing: 1.25,
                             top: function () {
-                                return Solitaire.Card.height * 1.5;
+                                var w = window.innerWidth || 800;
+                                return Solitaire.Card.height * (w < 1024 ? 1.28 : 1.5);
                             },
                             left: 0,
                         },
@@ -536,7 +539,8 @@ YUI.add(
                 setCardPosition: function (card) {
                     const cards = this.cards;
                     const stack = this;
-                    const fan = 0.28;
+                    const winW = window.innerWidth || 800;
+                    const fan = winW < 520 ? 0.42 : winW < 1024 ? 0.38 : 0.36;
                     const list =
                         card && cards.indexOf(card) === -1
                             ? cards.concat([card])

@@ -752,13 +752,13 @@ define(["./solitaire"], function (solitaire) {
             ) {
                 var menuBottom = Math.ceil(menu.getBoundingClientRect().bottom);
                 if (menuBottom > 0) {
-                    top = menuBottom + 10;
+                    top = menuBottom + 16;
                 }
             } else if (header) {
-                top = Math.ceil(header.getBoundingClientRect().bottom) + 10;
+                top = Math.ceil(header.getBoundingClientRect().bottom) + 16;
             }
 
-            Y.Solitaire.offset.top = Math.max(64, top);
+            Y.Solitaire.offset.top = Math.max(72, top);
 
             var bottom = 68;
             var fab = document.getElementById("dc-fab-bar");
@@ -776,58 +776,105 @@ define(["./solitaire"], function (solitaire) {
                     Math.ceil(winH - deal.getBoundingClientRect().top) + 8,
                 );
             }
-            Y.Solitaire.padding.y = Math.max(Y.Solitaire.padding.y || 0, bottom);
+            // Assign measured value — do not ratchet forever across resizes.
+            Y.Solitaire.padding.y = Math.max(56, bottom);
             return Y.Solitaire.offset.top;
         }
 
+        function ensureBaseHspacing(layout) {
+            if (!layout || typeof layout.hspacing !== "number") return;
+            if (typeof layout._dcBaseHspacing !== "number") {
+                layout._dcBaseHspacing = layout.hspacing;
+            }
+        }
+
+        function maxFieldColumns(game) {
+            var maxCols = 0;
+            if (!game || typeof game.eachStack !== "function") return 0;
+            game.eachStack(function (stack) {
+                var field = stack.field && game[stack.field];
+                var n = field && field.stacks ? field.stacks.length : 0;
+                if (n > maxCols) maxCols = n;
+            });
+            return maxCols;
+        }
+
         /**
-         * Phones: multi-column games (Spider/Forty Thieves) waste felt because
-         * hspacing 1.25 makes game.width() too wide. Tighten gaps so cards scale up.
+         * Tighten column gaps so width-bound layouts (iPad portrait, phones)
+         * grow cards into unused vertical felt — without overlapping faces.
          */
         function compactLayoutsForViewport(game, winW) {
             if (!game || typeof game.eachStack !== "function") return;
-            var bigCards = false;
-            try {
-                bigCards = localStorage.getItem("doccards_big_cards") === "true";
-            } catch (e) {}
-            var target;
+            var maxCols = maxFieldColumns(game);
+            var target = null;
             if (winW < 420) {
-                target = bigCards ? 0.88 : 0.94;
+                target = maxCols >= 10 ? 1.02 : 1.05;
             } else if (winW < 520) {
-                target = bigCards ? 0.92 : 0.98;
-            } else if (winW < 700) {
-                target = bigCards ? 1.02 : 1.08;
-            } else {
-                target = null;
+                target = maxCols >= 10 ? 1.04 : 1.08;
+            } else if (winW < 1024) {
+                // iPad / small laptop portrait — previously skipped at 700px.
+                target = maxCols >= 10 ? 1.08 : 1.12;
             }
 
             game.eachStack(function (stack) {
                 var layout = stack.configLayout;
                 if (!layout || typeof layout.hspacing !== "number") return;
-                if (typeof layout._dcBaseHspacing !== "number") {
-                    layout._dcBaseHspacing = layout.hspacing;
-                }
+                ensureBaseHspacing(layout);
                 var base = layout._dcBaseHspacing;
                 if (!(base > 1.01)) return;
                 if (target === null) {
                     layout.hspacing = base;
                 } else {
-                    layout.hspacing = Math.min(base, Math.max(0.85, target));
+                    layout.hspacing = Math.min(base, Math.max(1.02, target));
                 }
             });
+        }
+
+        /**
+         * When still width-bound after compact, keep tightening toward 1.02
+         * until width ratio meets height ratio (fills empty green felt).
+         */
+        function fillUnusedHeight(game, availW, availH, offsetLeft, offsetTop) {
+            if (!game || typeof game.eachStack !== "function") return;
+            if (!(game.Card && game.Card.base && game.Card.base.width)) return;
+            var step;
+            for (step = 0; step < 8; step++) {
+                recomputeWidthScale(game);
+                var gw = game.width();
+                var gh = game.height();
+                if (!(gw > 0) || !(gh > 0)) return;
+                var wRatio = (availW - offsetLeft) / gw;
+                var hRatio = (availH - offsetTop) / gh;
+                if (!(wRatio > 0) || !(hRatio > 0)) return;
+                if (wRatio >= hRatio * 0.97) return;
+
+                var tightened = false;
+                game.eachStack(function (stack) {
+                    var layout = stack.configLayout;
+                    if (!layout || typeof layout.hspacing !== "number") return;
+                    ensureBaseHspacing(layout);
+                    if (!(layout._dcBaseHspacing > 1.01)) return;
+                    if (layout.hspacing > 1.02) {
+                        layout.hspacing = Math.max(1.02, layout.hspacing - 0.03);
+                        tightened = true;
+                    }
+                });
+                if (!tightened) return;
+            }
+            recomputeWidthScale(game);
         }
 
         function recomputeWidthScale(game) {
             if (!game || !game.Card || !game.Card.base) return;
             var baseW = game.Card.base.width;
-            var baseH = game.Card.base.height;
             if (!baseW) return;
             var savedW = Y.Solitaire.Card.width;
             var savedH = Y.Solitaire.Card.height;
             Y.Solitaire.Card.width = baseW;
-            Y.Solitaire.Card.height = baseH;
+            Y.Solitaire.Card.height = game.Card.base.height;
             var minL = Infinity;
             var maxR = -Infinity;
+            var wasteFan = 0.42;
             game.eachStack(function (stack, i) {
                 var layout = stack.configLayout || {};
                 var hspacing =
@@ -845,8 +892,12 @@ define(["./solitaire"], function (solitaire) {
                     rawLeft = 0;
                 }
                 var left = rawLeft + i * hspacing * baseW;
+                var right = left + baseW;
+                if (stack.field === "waste") {
+                    right = left + baseW + 2 * wasteFan * baseW;
+                }
                 if (left < minL) minL = left;
-                if (left + baseW > maxR) maxR = left + baseW;
+                if (right > maxR) maxR = right;
             });
             Y.Solitaire.Card.width = savedW;
             Y.Solitaire.Card.height = savedH;
@@ -881,13 +932,19 @@ define(["./solitaire"], function (solitaire) {
                 offset.left = 4;
                 Y.Solitaire.offset.left = 4;
                 Y.Solitaire.padding.x = 4;
+            } else if (winW < 1024) {
+                padding.x = Math.min(padding.x, 16);
+                offset.left = Math.min(offset.left, 16);
+                Y.Solitaire.offset.left = offset.left;
+                Y.Solitaire.padding.x = padding.x;
             }
 
             compactLayoutsForViewport(game, winW);
-            recomputeWidthScale(game);
 
             var width = winW - padding.x;
             var height = winH - padding.y;
+            fillUnusedHeight(game, width, height, offset.left, offset.top);
+            recomputeWidthScale(game);
 
             Y.Solitaire.Application.windowHeight = height;
             var ratio = Math.min(
@@ -900,10 +957,10 @@ define(["./solitaire"], function (solitaire) {
                 bigCards = localStorage.getItem("doccards_big_cards") === "true";
             } catch (e) {}
             if (bigCards && game.Card && game.Card.base && game.Card.base.width) {
-                var minCssW = winW < 600 ? 48 : 72;
+                var minCssW = winW < 600 ? 44 : 56;
                 var floor = minCssW / game.Card.base.width;
                 if (ratio > 0 && ratio < floor) {
-                    ratio = floor;
+                    ratio = Math.min(floor, ratio * 1.08);
                 }
             }
 
@@ -912,13 +969,17 @@ define(["./solitaire"], function (solitaire) {
             }
 
             active.game.resize(ratio);
+            // Keep fan metrics proportional to scaled card size.
             try {
-                if (Y.Solitaire.Card) {
-                    if (Y.Solitaire.Card.hiddenRankHeight < 10) {
-                        Y.Solitaire.Card.hiddenRankHeight = 10;
+                if (Y.Solitaire.Card && Y.Solitaire.Card.height > 0) {
+                    var ch = Y.Solitaire.Card.height;
+                    var hh = Math.round(ch * 0.055);
+                    var rh = Math.round(ch * 0.12);
+                    if ((Y.Solitaire.Card.hiddenRankHeight || 0) < hh) {
+                        Y.Solitaire.Card.hiddenRankHeight = hh;
                     }
-                    if (Y.Solitaire.Card.rankHeight < 20) {
-                        Y.Solitaire.Card.rankHeight = 20;
+                    if ((Y.Solitaire.Card.rankHeight || 0) < rh) {
+                        Y.Solitaire.Card.rankHeight = rh;
                     }
                 }
             } catch (e) {}

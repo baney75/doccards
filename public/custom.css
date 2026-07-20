@@ -1124,14 +1124,21 @@ img.stack {
   pointer-events: none;
 }
 
-/* Sit above the dedication footer on tablet/desktop (footer hidden on phones) */
-@media (min-width: 481px) {
+/* Sit above the dedication footer only when footer is actually shown */
+@media (min-width: 901px) {
   #dc-fab-bar {
     bottom: calc(48px + env(safe-area-inset-bottom, 0px));
   }
 
   .deal-display {
     bottom: calc(48px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* Tablets/phones: hide footer so playfield + FABs reclaim vertical room */
+@media (max-width: 900px) {
+  #site-footer {
+    display: none !important;
   }
 }
 
