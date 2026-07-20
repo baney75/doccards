@@ -619,8 +619,9 @@
 
     _moveGhost: function (x, y) {
       if (!this._ghost) return;
+      // Keep the piece above the finger so Grandpa can see the drop target.
       this._ghost.style.left = x + "px";
-      this._ghost.style.top = y + "px";
+      this._ghost.style.top = (y - 52) + "px";
     },
 
     _boardPointerCell: function (clientX, clientY) {

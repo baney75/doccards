@@ -71,6 +71,7 @@
     _bestTime: null,
     _flagMode: false,
     _longPressTimer: null,
+    _suppressClick: false,
 
     mount: function (rootEl) {
       if (!rootEl) return;
@@ -91,6 +92,7 @@
     resume: function () {
       this._paused = false;
       if (this._mounted) this._render();
+      if (this._started && !this._over) this._startTimer();
     },
 
     newGame: function (playSound) {
@@ -207,9 +209,16 @@
     _bindCell: function (btn, r, c) {
       var self = this;
       var pressTimer = null;
+      var longPressed = false;
 
-      btn.addEventListener("click", function () {
+      btn.addEventListener("click", function (e) {
         if (self._over) return;
+        if (longPressed || self._suppressClick) {
+          longPressed = false;
+          self._suppressClick = false;
+          if (e && e.preventDefault) e.preventDefault();
+          return;
+        }
         if (self._flagMode || self._flagged[r][c]) {
           self._toggleFlag(r, c);
           return;
@@ -217,16 +226,30 @@
         self._reveal(r, c);
       });
 
+      btn.addEventListener("contextmenu", function (e) {
+        e.preventDefault();
+      });
+
       btn.addEventListener("touchstart", function () {
         if (self._over) return;
+        longPressed = false;
         pressTimer = setTimeout(function () {
           pressTimer = null;
+          longPressed = true;
+          self._suppressClick = true;
           self._toggleFlag(r, c);
           if (typeof DCSound !== "undefined" && DCSound.cardPlace) DCSound.cardPlace();
         }, 450);
       }, { passive: true });
 
       btn.addEventListener("touchend", function () {
+        if (pressTimer) {
+          clearTimeout(pressTimer);
+          pressTimer = null;
+        }
+      });
+
+      btn.addEventListener("touchcancel", function () {
         if (pressTimer) {
           clearTimeout(pressTimer);
           pressTimer = null;

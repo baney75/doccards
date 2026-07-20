@@ -1,4 +1,4 @@
-var CACHE_NAME = 'doccards-v36';
+var CACHE_NAME = 'doccards-v37';
 // Include every size pickThemeSize() may choose (79 on small non-retina).
 var CARD_SIZES = [79, 95, 122, 244];
 // Warm the most common play size first so first offline deal has faces.

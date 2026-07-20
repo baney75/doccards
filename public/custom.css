@@ -266,7 +266,8 @@ body.dc-chooser-open #site-footer {
   z-index: 9000;
   background: linear-gradient(180deg, #0D2240 0%, #0a1a30 100%);
   border-bottom: 2px solid #C9A961;
-  padding: 0 env(safe-area-inset-right, 0) 0 env(safe-area-inset-left, 0);
+  /* Notch/status bar must sit inside the header, not over the brand. */
+  padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0) 0 env(safe-area-inset-left, 0);
   box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
 }
 
@@ -397,7 +398,7 @@ body.dc-chooser-open #site-footer {
   box-sizing: border-box;
   display: block !important;
   overflow-x: hidden !important;
-  overflow-y: auto !important;
+  overflow-y: scroll !important; /* scroll (not auto) — more reliable scrollport on iOS */
   -webkit-overflow-scrolling: touch;
   touch-action: pan-y;
   /* Fully opaque — kill cards.css green.webp so the board cannot show through */
@@ -457,6 +458,9 @@ body.dc-chooser-open #site-footer {
   box-sizing: border-box;
   align-items: start;
   justify-content: center;
+  touch-action: pan-y;
+  /* Defeat cards.css float layout that can collapse height and kill scroll. */
+  float: none !important;
 }
 
 #descriptions li {
@@ -559,7 +563,7 @@ body.dc-chooser-open #site-footer {
 #menu {
   font-family: 'Inter', Helvetica, sans-serif;
   position: fixed !important;
-  top: calc(52px + env(safe-area-inset-top, 0px)) !important;
+  top: var(--dc-header-bottom, calc(52px + env(safe-area-inset-top, 0px))) !important;
   left: 0 !important;
   right: 0 !important;
   transform: none !important;
@@ -576,7 +580,7 @@ body.dc-chooser-open #site-footer {
   display: flex !important;
   align-items: stretch;
   justify-content: flex-start;
-  padding: 0;
+  padding: 0 env(safe-area-inset-right, 0) 0 env(safe-area-inset-left, 0);
   margin: 0 !important;
   list-style: none;
   height: 44px !important;
@@ -597,8 +601,10 @@ body.dc-chooser-open #site-footer {
 
 #menu li.begin { border-radius: 0 !important; }
 #menu li.end { border-radius: 0 !important; border-right: none !important; }
-#menu li:hover {
-  background: linear-gradient(180deg, #FFF8E5 0%, #F2E2B6 100%) !important;
+@media (hover: hover) and (pointer: fine) {
+  #menu li:hover {
+    background: linear-gradient(180deg, #FFF8E5 0%, #F2E2B6 100%) !important;
+  }
 }
 
 #menu a {
@@ -1717,7 +1723,7 @@ img.stack {
   .brand-logo { width: 28px; height: 28px; }
 
   body #menu {
-    top: calc(46px + env(safe-area-inset-top, 0px)) !important;
+    top: var(--dc-header-bottom, calc(46px + env(safe-area-inset-top, 0px))) !important;
     left: 0 !important;
     right: 0 !important;
     transform: none !important;
@@ -1811,7 +1817,10 @@ img.stack {
   body.solitairey_body {
     padding-top: calc(86px + env(safe-area-inset-top)) !important;
   }
-  body #menu { top: calc(40px + env(safe-area-inset-top, 0px)) !important; height: 44px; }
+  body #menu {
+    top: var(--dc-header-bottom, calc(40px + env(safe-area-inset-top, 0px))) !important;
+    height: 44px;
+  }
 
   #dc-fab-bar {
     gap: 4px;
@@ -1823,8 +1832,8 @@ img.stack {
   #dc-fab-bar #sound-toggle,
   #dc-fab-bar #undo-fab,
   #dc-fab-bar #hint-fab {
-    min-width: 40px;
-    min-height: 40px;
+    min-width: 44px;
+    min-height: 44px;
     width: auto !important;
     height: auto !important;
     padding: 6px 8px;
@@ -2338,11 +2347,9 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
    Hub tabs + Wood Block
    ============================================================ */
 .dc-hub-tabs {
-  display: flex;
-  gap: 6px;
-  justify-content: flex-start;
+  display: block;
   margin: 8px auto 12px;
-  padding: 4px 6px;
+  padding: 4px 0;
   background: linear-gradient(180deg, #F8F1E3 0%, rgba(248, 241, 227, 0.96) 100%);
   border-radius: 14px;
   max-width: 100%;
@@ -2352,16 +2359,27 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   /* Sit under sticky #close-chooser (~44px + margin) while #game-chooser scrolls */
   top: 56px;
   z-index: 2;
+  /* IMPORTANT: no overflow on this sticky shell — iOS traps parent pan-y
+     when sticky + overflow-x:auto share the same element. */
+  overflow: visible;
+  box-sizing: border-box;
+}
+
+.dc-hub-tabs-scroller {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-start;
+  flex-wrap: nowrap;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
-  flex-wrap: nowrap;
-  box-sizing: border-box;
-  touch-action: pan-x pan-y;
+  padding: 0 6px;
+  max-width: 100%;
+  touch-action: pan-x;
 }
 
-.dc-hub-tabs::-webkit-scrollbar {
+.dc-hub-tabs-scroller::-webkit-scrollbar {
   display: none;
 }
 
@@ -2373,7 +2391,8 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   background: linear-gradient(180deg, #F8F1E3 0%, rgba(248, 241, 227, 0.96) 100%);
 }
 
-.dc-hub-tabs button {
+.dc-hub-tabs button,
+.dc-hub-tabs-scroller button {
   flex: 0 0 auto;
   min-width: 64px;
   min-height: 44px;
@@ -2481,20 +2500,21 @@ body.dc-mode-woodblock.solitairey_body {
   overflow: hidden;
   touch-action: manipulation;
   --pz-board-max: min(calc(100vw - 24px), min(calc(100dvh - 160px), 440px));
-  --pz-cell-4: max(52px, min(calc(var(--pz-board-max) / 4 - 10px), 84px));
-  --pz-cell-9: max(28px, min(calc(var(--pz-board-max) / 9 - 4px), 40px));
+  --pz-cell-4: max(48px, min(calc(var(--pz-board-max) / 4 - 10px), 84px));
+  --pz-cell-9: max(36px, min(calc(var(--pz-board-max) / 9 - 4px), 48px));
   --pz-snake-cell: max(10px, min(calc((var(--pz-board-max) - 20px) / 16), 22px));
-  --pz-cell-5: max(36px, min(calc(var(--pz-board-max) / 5 - 8px), 64px));
+  --pz-cell-5: max(44px, min(calc(var(--pz-board-max) / 5 - 8px), 64px));
   --wb-cell: max(26px, min(calc((var(--pz-board-max) - 18px) / 10), 40px));
 }
 
-/* iPad / large tablet: more board room, keep touch-friendly cells */
-@media (min-width: 768px) and (pointer: coarse) {
+/* Tall tablets only — never force a fixed board on short/landscape phones. */
+@media (min-width: 768px) and (min-height: 700px) and (pointer: coarse) {
   .dc-woodblock-root,
   .dc-puzzle-root {
     padding-top: calc(72px + env(safe-area-inset-top, 0px));
     --pz-board-max: min(calc(100vw - 48px), min(calc(100dvh - 180px), 560px));
     --wb-cell: max(32px, min(calc((var(--pz-board-max) - 20px) / 10), 48px));
+    --pz-cell-9: max(40px, min(calc(var(--pz-board-max) / 9 - 4px), 52px));
   }
 }
 
@@ -2767,21 +2787,7 @@ body.dc-mode-woodblock.solitairey_body {
   margin: 0 0 18px;
 }
 
-@media (min-width: 768px) {
-  .dc-puzzle-root,
-  .dc-woodblock-root {
-    --pz-board-max: 440px;
-    --wb-cell: 38px;
-  }
-}
-
-@media (min-width: 1024px) and (orientation: landscape) {
-  .dc-puzzle-root,
-  .dc-woodblock-root {
-    --pz-board-max: 480px;
-    --wb-cell: 40px;
-  }
-}
+/* Height-aware tokens above already size boards — no fixed 440 override. */
 
 @media (prefers-reduced-motion: reduce) {
   .dc-wb-cell.clear-flash,

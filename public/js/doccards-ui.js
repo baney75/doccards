@@ -515,7 +515,7 @@
       try { localStorage.setItem(this.BIG_CARDS_KEY, String(isBig)); } catch (e) {}
       var btn = document.getElementById("a11y-toggle");
       if (btn) btn.classList.toggle("active", isBig);
-      this._showToast(isBig ? "Bigger cards on" : "Standard cards");
+      this._showToast(isBig ? "Larger type & denser cards" : "Standard cards");
       try {
         var Y = root.Y;
         if (Y && Y.Solitaire && Y.Solitaire.Application && Y.Solitaire.Application.pickThemeSize) {
@@ -850,7 +850,7 @@
       } catch (e) { return; }
       var tips = [
         "Tap a game card once to play. Star your favorites.",
-        "Tap ? for rules. Tap Aa for bigger cards.",
+        "Tap ? for rules. Tap Aa for larger type.",
         "Games opens solitaire and puzzles — Wood Block, 2048, Mines, Slide 15, Snake, Memory, Simon & Lights Out."
       ];
       var step = 0;

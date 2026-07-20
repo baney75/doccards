@@ -39,8 +39,20 @@
 
     resume: function () {
       this._paused = false;
-      this._inputLock = false;
-      if (this._mounted) this._render();
+      if (!this._mounted) return;
+      this._render();
+      var overEl = document.getElementById("dc-simon-over");
+      var gameOverVisible = overEl && !overEl.classList.contains("hidden");
+      // After leaving mid-sequence, lock input and replay so Grandpa isn't guessing.
+      if (this._sequence && this._sequence.length && !gameOverVisible) {
+        var self = this;
+        this._inputLock = true;
+        this._step = 0;
+        this._playing = true;
+        setTimeout(function () { self._playback(0); }, 400);
+      } else if (!gameOverVisible) {
+        this._inputLock = false;
+      }
     },
 
     newGame: function (playSound) {

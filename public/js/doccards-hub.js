@@ -155,12 +155,15 @@
         else chooser.insertBefore(tabs, chooser.firstChild);
       }
       if (!tabs._dcBuilt) {
-        var html = '<button type="button" role="tab" id="dc-tab-solitaire" aria-controls="dc-hub-panel-solitaire">Solitaire</button>';
+        var html =
+          '<div class="dc-hub-tabs-scroller" role="presentation">' +
+          '<button type="button" role="tab" id="dc-tab-solitaire" aria-controls="dc-hub-panel-solitaire">Solitaire</button>';
         var i;
         for (i = 0; i < PUZZLES.length; i++) {
           var p = PUZZLES[i];
           html += '<button type="button" role="tab" id="dc-tab-' + p.id + '" aria-controls="dc-hub-panel-' + p.id + '">' + p.short + "</button>";
         }
+        html += "</div>";
         tabs.innerHTML = html;
         tabs._dcBuilt = true;
       }

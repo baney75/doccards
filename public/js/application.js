@@ -715,42 +715,144 @@ define(["./solitaire"], function (solitaire) {
             window.Y = Y;
             if (Y.Solitaire) {
                 Y.Solitaire.offset = Y.Solitaire.offset || { left: 40, top: 70 };
-                // Layout origin below header+menu + notch safe area.
+                Y.Solitaire.padding = Y.Solitaire.padding || { x: 40, y: 72 };
                 applyChromeOffset();
-                Y.Solitaire.padding = Y.Solitaire.padding || { x: 40, y: 50 };
-                // Bottom chrome only (FABs / footer) — not another header clearance.
-                Y.Solitaire.padding.y = 72;
             }
             exportAPI();
             Y.on("domready", _my_load_func);
         }
 
-        /** Measure header + menu so the tableau never tucks under chrome. */
+        /**
+         * Measure real chrome boxes so the tableau never tucks under the menu.
+         * Also publishes --dc-header-bottom for CSS menu positioning.
+         */
         function applyChromeOffset() {
             if (!Y || !Y.Solitaire) return 96;
             Y.Solitaire.offset = Y.Solitaire.offset || { left: 40, top: 70 };
+            Y.Solitaire.padding = Y.Solitaire.padding || { x: 40, y: 50 };
             var menu = document.getElementById("menu");
-            // Header uses id="doccards-header" (not a class).
             var header = document.getElementById("doccards-header");
-            var h = 0;
-            if (header) h += header.offsetHeight || 0;
-            if (menu && !menu.classList.contains("dc-hidden-mode")) {
-                h += menu.offsetHeight || 0;
+            var top = 96;
+
+            if (header) {
+                var headerBottom = Math.ceil(header.getBoundingClientRect().bottom);
+                try {
+                    document.documentElement.style.setProperty(
+                        "--dc-header-bottom",
+                        headerBottom + "px",
+                    );
+                } catch (e) {}
             }
-            var safe = 0;
+
+            if (
+                menu &&
+                !menu.classList.contains("dc-hidden-mode") &&
+                menu.offsetParent !== null &&
+                menu.getBoundingClientRect
+            ) {
+                var menuBottom = Math.ceil(menu.getBoundingClientRect().bottom);
+                if (menuBottom > 0) {
+                    top = menuBottom + 10;
+                }
+            } else if (header) {
+                top = Math.ceil(header.getBoundingClientRect().bottom) + 10;
+            }
+
+            Y.Solitaire.offset.top = Math.max(64, top);
+
+            var bottom = 68;
+            var fab = document.getElementById("dc-fab-bar");
+            var deal = document.querySelector(".deal-display");
+            var winH = window.innerHeight || 0;
+            if (fab && fab.offsetParent !== null) {
+                bottom = Math.max(
+                    bottom,
+                    Math.ceil(winH - fab.getBoundingClientRect().top) + 10,
+                );
+            }
+            if (deal && deal.offsetParent !== null) {
+                bottom = Math.max(
+                    bottom,
+                    Math.ceil(winH - deal.getBoundingClientRect().top) + 8,
+                );
+            }
+            Y.Solitaire.padding.y = Math.max(Y.Solitaire.padding.y || 0, bottom);
+            return Y.Solitaire.offset.top;
+        }
+
+        /**
+         * Phones: multi-column games (Spider/Forty Thieves) waste felt because
+         * hspacing 1.25 makes game.width() too wide. Tighten gaps so cards scale up.
+         */
+        function compactLayoutsForViewport(game, winW) {
+            if (!game || typeof game.eachStack !== "function") return;
+            var bigCards = false;
             try {
-                // env() only resolves via a real CSS property, not getPropertyValue("env(...)").
-                var probe = document.createElement("div");
-                probe.style.cssText =
-                    "position:absolute;visibility:hidden;pointer-events:none;" +
-                    "padding-top:env(safe-area-inset-top,0px);";
-                document.body.appendChild(probe);
-                safe = parseInt(getComputedStyle(probe).paddingTop, 10) || 0;
-                document.body.removeChild(probe);
+                bigCards = localStorage.getItem("doccards_big_cards") === "true";
             } catch (e) {}
-            var top = Math.max(96, h + safe + 8);
-            Y.Solitaire.offset.top = top;
-            return top;
+            var target;
+            if (winW < 420) {
+                target = bigCards ? 0.88 : 0.94;
+            } else if (winW < 520) {
+                target = bigCards ? 0.92 : 0.98;
+            } else if (winW < 700) {
+                target = bigCards ? 1.02 : 1.08;
+            } else {
+                target = null;
+            }
+
+            game.eachStack(function (stack) {
+                var layout = stack.configLayout;
+                if (!layout || typeof layout.hspacing !== "number") return;
+                if (typeof layout._dcBaseHspacing !== "number") {
+                    layout._dcBaseHspacing = layout.hspacing;
+                }
+                var base = layout._dcBaseHspacing;
+                if (!(base > 1.01)) return;
+                if (target === null) {
+                    layout.hspacing = base;
+                } else {
+                    layout.hspacing = Math.min(base, Math.max(0.85, target));
+                }
+            });
+        }
+
+        function recomputeWidthScale(game) {
+            if (!game || !game.Card || !game.Card.base) return;
+            var baseW = game.Card.base.width;
+            var baseH = game.Card.base.height;
+            if (!baseW) return;
+            var savedW = Y.Solitaire.Card.width;
+            var savedH = Y.Solitaire.Card.height;
+            Y.Solitaire.Card.width = baseW;
+            Y.Solitaire.Card.height = baseH;
+            var minL = Infinity;
+            var maxR = -Infinity;
+            game.eachStack(function (stack, i) {
+                var layout = stack.configLayout || {};
+                var hspacing =
+                    typeof layout.hspacing === "number" ? layout.hspacing : 0;
+                var rawLeft = 0;
+                try {
+                    rawLeft =
+                        typeof layout.left === "function"
+                            ? layout.left()
+                            : layout.left || 0;
+                } catch (e) {
+                    rawLeft = 0;
+                }
+                if (typeof rawLeft !== "number" || !Number.isFinite(rawLeft)) {
+                    rawLeft = 0;
+                }
+                var left = rawLeft + i * hspacing * baseW;
+                if (left < minL) minL = left;
+                if (left + baseW > maxR) maxR = left + baseW;
+            });
+            Y.Solitaire.Card.width = savedW;
+            Y.Solitaire.Card.height = savedH;
+            if (Number.isFinite(minL) && Number.isFinite(maxR) && maxR > minL) {
+                game.widthScale = (maxR - minL) / baseW;
+            }
         }
 
         function resize() {
@@ -772,16 +874,18 @@ define(["./solitaire"], function (solitaire) {
             var winH = el.get("winHeight");
             var footerEl = document.getElementById("site-footer");
             var footerVisible = footerEl && footerEl.offsetParent !== null;
-            // Bottom reserve: FAB bar (~56) + optional footer (~40)
-            var bottomChrome = footerVisible ? 96 : 68;
+            var bottomChrome = footerVisible ? Math.max(padding.y, 96) : padding.y;
             padding.y = Math.max(padding.y, bottomChrome);
-            // Narrow phones: tighten side gutters so all columns fit.
             if (winW < 520) {
-                padding.x = 8;
-                offset.left = 8;
-                Y.Solitaire.offset.left = 8;
-                Y.Solitaire.padding.x = 8;
+                padding.x = 4;
+                offset.left = 4;
+                Y.Solitaire.offset.left = 4;
+                Y.Solitaire.padding.x = 4;
             }
+
+            compactLayoutsForViewport(game, winW);
+            recomputeWidthScale(game);
+
             var width = winW - padding.x;
             var height = winH - padding.y;
 
@@ -790,13 +894,34 @@ define(["./solitaire"], function (solitaire) {
                 (width - offset.left) / game.width(),
                 (height - offset.top) / game.height(),
             );
-            // Small safety margin so the rightmost column isn't clipped
-            // by rounded device bezels / subpixel rounding.
-            if (winW < 520 && ratio > 0 && Number.isFinite(ratio)) {
-                ratio *= 0.96;
+
+            var bigCards = false;
+            try {
+                bigCards = localStorage.getItem("doccards_big_cards") === "true";
+            } catch (e) {}
+            if (bigCards && game.Card && game.Card.base && game.Card.base.width) {
+                var minCssW = winW < 600 ? 48 : 72;
+                var floor = minCssW / game.Card.base.width;
+                if (ratio > 0 && ratio < floor) {
+                    ratio = floor;
+                }
+            }
+
+            if (!(ratio > 0) || !Number.isFinite(ratio)) {
+                ratio = 0.5;
             }
 
             active.game.resize(ratio);
+            try {
+                if (Y.Solitaire.Card) {
+                    if (Y.Solitaire.Card.hiddenRankHeight < 10) {
+                        Y.Solitaire.Card.hiddenRankHeight = 10;
+                    }
+                    if (Y.Solitaire.Card.rankHeight < 20) {
+                        Y.Solitaire.Card.rankHeight = 20;
+                    }
+                }
+            } catch (e) {}
             GameChooser.refit();
             try {
                 window.scrollTo(0, 0);

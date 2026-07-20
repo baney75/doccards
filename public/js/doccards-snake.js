@@ -39,10 +39,10 @@
 
     resume: function () {
       this._paused = false;
-      if (this._mounted && !this._over) {
-        this._startLoop();
-        this._render();
-      }
+      if (!this._mounted) return;
+      // Always rebuild/paint shell — including game-over — after hub remounts.
+      this._render();
+      if (!this._over) this._startLoop();
     },
 
     newGame: function (playSound) {
