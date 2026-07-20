@@ -379,7 +379,8 @@ body.dc-chooser-open #site-footer {
   padding-bottom: calc(24px + env(safe-area-inset-bottom, 0));
   /* Above brand header (9000) so Return to game is always clickable */
   z-index: 9500 !important;
-  touch-action: pan-y;
+  /* manipulation (not pan-y): nested hub-tab pan-x must still work on iOS */
+  touch-action: manipulation;
 }
 
 #game-chooser.show {
@@ -400,7 +401,7 @@ body.dc-chooser-open #site-footer {
   overflow-x: hidden !important;
   overflow-y: scroll !important; /* scroll (not auto) — more reliable scrollport on iOS */
   -webkit-overflow-scrolling: touch;
-  touch-action: pan-y;
+  touch-action: manipulation;
   /* Fully opaque — kill cards.css green.webp so the board cannot show through */
   background-color: #F8F1E3 !important;
   background-image:
@@ -426,7 +427,7 @@ body.dc-chooser-open #site-footer {
   width: 100%;
   max-width: 100%;
   overflow: visible !important;
-  touch-action: pan-y;
+  touch-action: manipulation;
   box-sizing: border-box;
 }
 
@@ -586,9 +587,17 @@ body.dc-chooser-open #site-footer {
   height: 44px !important;
   overflow-x: auto;
   overflow-y: hidden;
-  scrollbar-width: none;
+  scrollbar-width: thin;
+  scrollbar-color: #C9A961 rgba(13, 34, 64, 0.12);
 }
-#menu::-webkit-scrollbar { display: none; }
+#menu::-webkit-scrollbar {
+  height: 6px;
+  display: block;
+}
+#menu::-webkit-scrollbar-thumb {
+  background: #C9A961;
+  border-radius: 6px;
+}
 
 #menu li {
   float: none !important;
@@ -1474,7 +1483,7 @@ img.stack {
   display: flex;
   gap: 8px;
   margin-bottom: 12px;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .filter-btn {
@@ -1732,9 +1741,13 @@ img.stack {
     height: 44px;
     min-width: 0;
     overflow-x: auto;
-    scrollbar-width: none;
+    scrollbar-width: thin;
+    scrollbar-color: #C9A961 rgba(13, 34, 64, 0.12);
   }
-  #menu::-webkit-scrollbar { display: none; }
+  #menu::-webkit-scrollbar {
+    height: 6px;
+    display: block;
+  }
   #menu a {
     font-size: 13px !important;
     padding: 0 12px !important;
@@ -1894,8 +1907,8 @@ img.stack {
 .difficulty-hard { background: #F5E4E4; border-color: #9C1E1E; color: #9C1E1E; }
 
 #fav-filter {
+  /* Horizontal strip — full scroll rules live with .dc-hub-tabs below. */
   display: flex;
-  flex-wrap: wrap;
   gap: 8px;
   margin: 8px 0 16px;
 }
@@ -1913,6 +1926,11 @@ img.stack {
 .filter-btn.active {
   background: #0D2240;
   color: #F8F1E3;
+}
+
+.filter-btn {
+  flex: 0 0 auto;
+  white-space: nowrap;
 }
 
 .confirm-actions {
@@ -2347,9 +2365,11 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
    Hub tabs + Wood Block
    ============================================================ */
 .dc-hub-tabs {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 2px;
   margin: 8px auto 12px;
-  padding: 4px 0;
+  padding: 4px 2px;
   background: linear-gradient(180deg, #F8F1E3 0%, rgba(248, 241, 227, 0.96) 100%);
   border-radius: 14px;
   max-width: 100%;
@@ -2359,10 +2379,38 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   /* Sit under sticky #close-chooser (~44px + margin) while #game-chooser scrolls */
   top: 56px;
   z-index: 2;
-  /* IMPORTANT: no overflow on this sticky shell — iOS traps parent pan-y
-     when sticky + overflow-x:auto share the same element. */
+  /* No overflow on sticky shell — iOS traps parent pan-y if sticky+overflow-x share a node. */
   overflow: visible;
   box-sizing: border-box;
+}
+
+.dc-hub-tabs-nav {
+  flex: 0 0 auto;
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+  border: 1px solid rgba(201, 169, 97, 0.55);
+  border-radius: 12px;
+  background: #0D2240;
+  color: #F8F1E3;
+  font-size: 1.35rem;
+  font-weight: 700;
+  line-height: 1;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  box-shadow: 0 2px 8px rgba(13, 34, 64, 0.2);
+}
+
+.dc-hub-tabs-nav:disabled {
+  opacity: 0.35;
+  cursor: default;
+  box-shadow: none;
+}
+
+.dc-hub-tabs-nav:not(:disabled):active {
+  transform: scale(0.96);
 }
 
 .dc-hub-tabs-scroller {
@@ -2370,17 +2418,42 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   gap: 6px;
   justify-content: flex-start;
   flex-wrap: nowrap;
+  flex: 1 1 auto;
+  /* Critical: without min-width:0 the flex item grows with tabs and gets
+     clipped by #game-chooser overflow-x:hidden instead of scrolling. */
+  min-width: 0;
+  width: 100%;
+  max-width: 100%;
   overflow-x: auto;
   overflow-y: hidden;
   -webkit-overflow-scrolling: touch;
-  scrollbar-width: none;
-  padding: 0 6px;
-  max-width: 100%;
-  touch-action: pan-x;
+  overscroll-behavior-x: contain;
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: #C9A961 rgba(13, 34, 64, 0.1);
+  padding: 2px 6px 8px;
+  touch-action: pan-x pan-y;
+  box-sizing: border-box;
 }
 
 .dc-hub-tabs-scroller::-webkit-scrollbar {
-  display: none;
+  height: 8px;
+  display: block;
+}
+
+.dc-hub-tabs-scroller::-webkit-scrollbar-track {
+  background: rgba(13, 34, 64, 0.08);
+  border-radius: 8px;
+}
+
+.dc-hub-tabs-scroller::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #E8D5A3, #C9A961);
+  border-radius: 8px;
+  border: 1px solid rgba(13, 34, 64, 0.15);
+}
+
+.dc-hub-tabs-scroller::-webkit-scrollbar-thumb:hover {
+  background: #C9A961;
 }
 
 #fav-filter {
@@ -2389,6 +2462,30 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   top: 108px;
   z-index: 2;
   background: linear-gradient(180deg, #F8F1E3 0%, rgba(248, 241, 227, 0.96) 100%);
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 8px;
+  margin: 8px 0 16px;
+  padding: 4px 2px 8px;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+  scrollbar-width: thin;
+  scrollbar-color: #C9A961 rgba(13, 34, 64, 0.1);
+  touch-action: pan-x pan-y;
+}
+
+#fav-filter::-webkit-scrollbar {
+  height: 6px;
+  display: block;
+}
+
+#fav-filter::-webkit-scrollbar-thumb {
+  background: #C9A961;
+  border-radius: 6px;
 }
 
 .dc-hub-tabs button,
@@ -2406,11 +2503,13 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   background: transparent;
   cursor: pointer;
   white-space: nowrap;
-  touch-action: manipulation;
+  /* Allow horizontal drag starting on a tab to scroll the strip */
+  touch-action: pan-x;
   transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease;
 }
 
-.dc-hub-tabs button.active {
+.dc-hub-tabs button.active,
+.dc-hub-tabs-scroller button.active {
   background: #0D2240;
   color: #F8F1E3;
   box-shadow: 0 4px 14px rgba(13, 34, 64, 0.25);

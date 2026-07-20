@@ -154,20 +154,110 @@
         if (title) chooser.insertBefore(tabs, title);
         else chooser.insertBefore(tabs, chooser.firstChild);
       }
-      if (!tabs._dcBuilt) {
+      // Rebuild if missing the horizontal scroller (older DOM / failed partial paint).
+      if (!tabs._dcBuilt || !tabs.querySelector(".dc-hub-tabs-scroller")) {
         var html =
+          '<button type="button" class="dc-hub-tabs-nav dc-hub-tabs-prev" aria-label="Scroll games left" tabindex="0">‹</button>' +
           '<div class="dc-hub-tabs-scroller" role="presentation">' +
           '<button type="button" role="tab" id="dc-tab-solitaire" aria-controls="dc-hub-panel-solitaire">Solitaire</button>';
         var i;
         for (i = 0; i < PUZZLES.length; i++) {
           var p = PUZZLES[i];
-          html += '<button type="button" role="tab" id="dc-tab-' + p.id + '" aria-controls="dc-hub-panel-' + p.id + '">' + p.short + "</button>";
+          html +=
+            '<button type="button" role="tab" id="dc-tab-' +
+            p.id +
+            '" aria-controls="dc-hub-panel-' +
+            p.id +
+            '">' +
+            p.short +
+            "</button>";
         }
-        html += "</div>";
+        html +=
+          "</div>" +
+          '<button type="button" class="dc-hub-tabs-nav dc-hub-tabs-next" aria-label="Scroll games right" tabindex="0">›</button>';
         tabs.innerHTML = html;
         tabs._dcBuilt = true;
+        // Force rebind after rebuild.
+        var nodes = tabs.querySelectorAll("button");
+        var n;
+        for (n = 0; n < nodes.length; n++) nodes[n]._dcBound = false;
+        tabs._dcScrollBound = false;
       }
       this._bindTabEvents();
+      this._bindTabScrollNav();
+      this._scrollActiveTabIntoView(false);
+    },
+
+    _bindTabScrollNav: function () {
+      var tabs = document.getElementById("dc-hub-tabs");
+      if (!tabs || tabs._dcScrollBound) return;
+      var scroller = tabs.querySelector(".dc-hub-tabs-scroller");
+      var prev = tabs.querySelector(".dc-hub-tabs-prev");
+      var next = tabs.querySelector(".dc-hub-tabs-next");
+      if (!scroller || !prev || !next) return;
+      tabs._dcScrollBound = true;
+      var self = this;
+
+      function updateNav() {
+        var max = Math.max(0, scroller.scrollWidth - scroller.clientWidth - 1);
+        prev.disabled = scroller.scrollLeft <= 2;
+        next.disabled = scroller.scrollLeft >= max;
+        prev.setAttribute("aria-disabled", prev.disabled ? "true" : "false");
+        next.setAttribute("aria-disabled", next.disabled ? "true" : "false");
+      }
+
+      prev.addEventListener("click", function () {
+        scroller.scrollBy({ left: -Math.max(120, scroller.clientWidth * 0.6), behavior: "smooth" });
+      });
+      next.addEventListener("click", function () {
+        scroller.scrollBy({ left: Math.max(120, scroller.clientWidth * 0.6), behavior: "smooth" });
+      });
+      scroller.addEventListener("scroll", updateNav, { passive: true });
+      try {
+        if (typeof ResizeObserver !== "undefined") {
+          var ro = new ResizeObserver(updateNav);
+          ro.observe(scroller);
+        }
+      } catch (e) {}
+      // Initial state after layout.
+      setTimeout(updateNav, 0);
+      setTimeout(updateNav, 120);
+      tabs._dcUpdateTabNav = updateNav;
+    },
+
+    _scrollActiveTabIntoView: function (smooth) {
+      var tabs = document.getElementById("dc-hub-tabs");
+      if (!tabs) return;
+      var scroller = tabs.querySelector(".dc-hub-tabs-scroller");
+      var active = tabs.querySelector("button.active");
+      if (!scroller || !active) return;
+      try {
+        var sRect = scroller.getBoundingClientRect();
+        var aRect = active.getBoundingClientRect();
+        var pad = 24;
+        if (aRect.left < sRect.left + pad) {
+          scroller.scrollBy({
+            left: aRect.left - sRect.left - pad,
+            behavior: smooth === false ? "auto" : "smooth"
+          });
+        } else if (aRect.right > sRect.right - pad) {
+          scroller.scrollBy({
+            left: aRect.right - sRect.right + pad,
+            behavior: smooth === false ? "auto" : "smooth"
+          });
+        }
+      } catch (e) {
+        try {
+          active.scrollIntoView({
+            inline: "center",
+            block: "nearest",
+            behavior: smooth === false ? "auto" : "smooth"
+          });
+        } catch (e2) {}
+      }
+      if (tabs._dcUpdateTabNav) {
+        setTimeout(tabs._dcUpdateTabNav, smooth === false ? 0 : 220);
+      }
     },
 
     _bindTabEvents: function () {
@@ -198,6 +288,7 @@
       this._chooserTab = mode;
       this._setTab(mode);
       this._setChooserPanel(mode);
+      this._scrollActiveTabIntoView(true);
       var title = document.querySelector(".chooser-title");
       if (!title) return;
       if (mode === MODE_SOLITAIRE) {
