@@ -163,13 +163,6 @@ define(["./solitaire"], function (solitaire) {
                 node.setStyle("height", "");
             },
 
-            _isChooserTarget: function (target) {
-                if (!target) return false;
-                var el = target.nodeType === 1 ? target : target.parentElement;
-                if (!el || !el.closest) return false;
-                return !!el.closest("#game-chooser");
-            },
-
             _lockBoardScroll: function () {
                 if (this._scrollLocked) return;
                 this._scrollLocked = true;
@@ -180,6 +173,9 @@ define(["./solitaire"], function (solitaire) {
                 body.classList.add("dc-chooser-open");
                 body.classList.add("scrollable");
                 // Freeze the document so iOS rubber-band cannot drag the felt.
+                // Do NOT install non-passive document touchmove listeners — they
+                // break vertical panning of #game-chooser on mobile WebKit even
+                // when preventDefault is skipped for chooser targets.
                 body.style.position = "fixed";
                 body.style.top = "-" + this._lockY + "px";
                 body.style.left = "0";
@@ -190,37 +186,8 @@ define(["./solitaire"], function (solitaire) {
                 try {
                     window.scrollTo(0, 0);
                 } catch (e) {}
-
-                var self = this;
-                this._onTouchMove = function (e) {
-                    // Allow pan only inside the chooser overlay; block everything else.
-                    if (!self._isChooserTarget(e.target)) {
-                        e.preventDefault();
-                        return;
-                    }
-                    // At chooser scroll edges, stop chaining to the document.
-                    var chooser = document.getElementById("game-chooser");
-                    if (!chooser) return;
-                    var t = e.target && e.target.closest
-                        ? e.target.closest("#game-chooser")
-                        : chooser;
-                    if (t !== chooser && !chooser.contains(e.target)) {
-                        e.preventDefault();
-                    }
-                };
-                this._onWheel = function (e) {
-                    if (!self._isChooserTarget(e.target)) {
-                        e.preventDefault();
-                    }
-                };
-                document.addEventListener("touchmove", this._onTouchMove, {
-                    passive: false,
-                    capture: true,
-                });
-                document.addEventListener("wheel", this._onWheel, {
-                    passive: false,
-                    capture: true,
-                });
+                this._onTouchMove = null;
+                this._onWheel = null;
             },
 
             _unlockBoardScroll: function () {
@@ -238,18 +205,8 @@ define(["./solitaire"], function (solitaire) {
                 body.style.width = "";
                 html.style.overflow = "";
                 body.style.overflow = "";
-                if (this._onTouchMove) {
-                    document.removeEventListener("touchmove", this._onTouchMove, {
-                        capture: true,
-                    });
-                    this._onTouchMove = null;
-                }
-                if (this._onWheel) {
-                    document.removeEventListener("wheel", this._onWheel, {
-                        capture: true,
-                    });
-                    this._onWheel = null;
-                }
+                this._onTouchMove = null;
+                this._onWheel = null;
                 try {
                     window.scrollTo(0, this._lockY || 0);
                     document.documentElement.scrollTop = 0;
@@ -259,8 +216,8 @@ define(["./solitaire"], function (solitaire) {
             },
 
             _scrollChooserTo: function (li) {
-                var chooser = document.getElementById("game-chooser-contents") ||
-                    document.getElementById("game-chooser");
+                // Sole scrollport is #game-chooser.show (not nested contents).
+                var chooser = document.getElementById("game-chooser");
                 if (!chooser || !li) return;
                 // Scroll ONLY the chooser overlay — never Element.scrollIntoView
                 // (that walks ancestors and can yank the solitaire board).
@@ -299,9 +256,10 @@ define(["./solitaire"], function (solitaire) {
                 chooser.addClass("show");
                 // Reset overlay scroll; do not touch document scroll for content.
                 try {
-                    var node = document.getElementById("game-chooser-contents") ||
-                        document.getElementById("game-chooser");
+                    var node = document.getElementById("game-chooser");
                     if (node) node.scrollTop = 0;
+                    var contents = document.getElementById("game-chooser-contents");
+                    if (contents) contents.scrollTop = 0;
                 } catch (e) {}
                 this._lockBoardScroll();
                 this.refit();

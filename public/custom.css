@@ -360,7 +360,10 @@ body.dc-chooser-open #site-footer {
   }
 }
 
-/* ---- Game Chooser (sole scroll surface while open) ---- */
+/* ---- Game Chooser (sole scroll surface while open) ----
+   One scrollport only: #game-chooser.show itself.
+   Nested overflow on #game-chooser-contents + document touchmove locks
+   routinely freeze vertical panning on iOS/Android WebViews. */
 #game-chooser {
   max-height: 100vh;
   max-height: -webkit-fill-available;
@@ -387,13 +390,16 @@ body.dc-chooser-open #site-footer {
   bottom: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
-  height: 100% !important;
+  height: 100dvh !important;
+  height: -webkit-fill-available !important;
   max-height: 100dvh !important;
   min-height: 0 !important;
   box-sizing: border-box;
-  display: flex !important;
-  flex-direction: column;
-  overflow: hidden !important;
+  display: block !important;
+  overflow-x: hidden !important;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  touch-action: pan-y;
   /* Fully opaque — kill cards.css green.webp so the board cannot show through */
   background-color: #F8F1E3 !important;
   background-image:
@@ -405,7 +411,6 @@ body.dc-chooser-open #site-footer {
 }
 
 #game-chooser.show > #close-chooser {
-  flex-shrink: 0;
   position: sticky;
   top: 0;
   z-index: 3;
@@ -413,16 +418,14 @@ body.dc-chooser-open #site-footer {
   background: linear-gradient(180deg, #F8F1E3 0%, #efe6d4 100%);
 }
 
+/* Contents must NOT be a nested scrollport — let #game-chooser.show scroll. */
 #game-chooser.show > #game-chooser-contents {
-  flex: 1;
-  min-height: 0;
-  /* min-width:0 lets the flex child shrink so the game grid cannot blow past the phone. */
+  display: block !important; /* override cards.css inline-block */
   min-width: 0;
   width: 100%;
   max-width: 100%;
-  overflow-x: hidden;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
+  overflow: visible !important;
+  touch-action: pan-y;
   box-sizing: border-box;
 }
 
@@ -2340,13 +2343,14 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   justify-content: flex-start;
   margin: 8px auto 12px;
   padding: 4px 6px;
-  background: rgba(13, 34, 64, 0.06);
+  background: linear-gradient(180deg, #F8F1E3 0%, rgba(248, 241, 227, 0.96) 100%);
   border-radius: 14px;
   max-width: 100%;
   width: 100%;
   min-width: 0;
   position: sticky;
-  top: 0;
+  /* Sit under sticky #close-chooser (~44px + margin) while #game-chooser scrolls */
+  top: 56px;
   z-index: 2;
   overflow-x: auto;
   overflow-y: hidden;
@@ -2354,6 +2358,7 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
   scrollbar-width: none;
   flex-wrap: nowrap;
   box-sizing: border-box;
+  touch-action: pan-x pan-y;
 }
 
 .dc-hub-tabs::-webkit-scrollbar {
@@ -2362,7 +2367,8 @@ body.dc-drop-ok .yui3-dd-drop-active-valid {
 
 #fav-filter {
   position: sticky;
-  top: 52px;
+  /* Under close (~56) + hub tabs (~52) */
+  top: 108px;
   z-index: 2;
   background: linear-gradient(180deg, #F8F1E3 0%, rgba(248, 241, 227, 0.96) 100%);
 }

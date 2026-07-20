@@ -77,9 +77,12 @@ def main() -> None:
   GC.show(false);
   await new Promise(r => setTimeout(r, 200));
   const chooser = document.getElementById('game-chooser');
+  const contents = document.getElementById('game-chooser-contents');
   const locked = document.body.classList.contains('dc-chooser-open');
   const bodyPos = getComputedStyle(document.body).position;
   const beforeY = window.scrollY;
+  const cs = getComputedStyle(chooser);
+  const csInner = getComputedStyle(contents);
   const max = Math.max(0, chooser.scrollHeight - chooser.clientHeight);
   chooser.scrollTop = Math.min(max, 450);
   await new Promise(r => setTimeout(r, 150));
@@ -99,10 +102,14 @@ def main() -> None:
   const pass = !!(
     locked && midY === 0 && afterY === 0 && midChooser > 0
     && unlocked && bodyPos === 'fixed'
+    && cs.overflowY === 'auto'
+    && (csInner.overflowY === 'visible' || csInner.overflowY === 'auto')
+    && max > 0
   );
   return {
     locked, unlocked, bodyPos, beforeY, midY, afterY,
-    midChooser, afterChooser, max, cardVis, pass
+    midChooser, afterChooser, max, cardVis,
+    overflowY: cs.overflowY, innerOverflowY: csInner.overflowY, pass
   };
 })()
 """,
