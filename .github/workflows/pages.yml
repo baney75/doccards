@@ -16,9 +16,13 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
-# Site is published from the gh-pages branch (repo Settings → Pages → Deploy from branch).
-# peaceiris/actions-gh-pages updates that branch; no separate deploy-pages job needed
-# (that job failed under github-pages environment branch policies).
+# Site is published from the gh-pages branch
+# (Settings → Pages → Deploy from a branch → gh-pages / root).
+# Do NOT switch Source to "GitHub Actions" or re-add actions/deploy-pages
+# unless the github-pages environment allows branch "master" — otherwise
+# deploy fails with: Branch "master" is not allowed to deploy to github-pages.
+# Live URL (project site): https://baney75.github.io/doccards/
+# User-site root https://baney75.github.io/ needs repo rename to baney75.github.io.
 
 jobs:
   build-and-deploy:
@@ -38,6 +42,15 @@ jobs:
 
       - name: Build site
         run: npm run pages:build
+
+      - name: Verify publish artifact
+        run: |
+          test -f _site/index.html
+          test -f _site/sw.js
+          test -f _site/manifest.json
+          test -f _site/.nojekyll
+          grep -q "var CACHE_NAME = 'doccards-v" _site/sw.js
+          echo "Artifact OK: $(grep -o "doccards-v[0-9]*" _site/sw.js | head -1)"
 
       - name: Publish to gh-pages
         uses: peaceiris/actions-gh-pages@v4

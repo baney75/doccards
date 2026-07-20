@@ -52,20 +52,36 @@ Then open <http://localhost:3000>.
 **Live site:** <https://baney75.github.io/doccards/>
 
 This is a **project Pages** site for the `doccards` repository (repo name stays
-`doccards` — no rename required). The app is configured for the `/doccards/`
-base path.
+`doccards`). The app, manifest `id`, OG URLs, and service worker base path are
+configured for `/doccards/`.
 
-### Publish
+**User-site root** (`https://baney75.github.io/`) is **not** live today (root
+returns 404). To get that URL, rename the repo to `baney75.github.io`, then
+update `manifest.json` `id`, OG/Twitter URLs in `index.html`, and re-verify
+`/`, `/sw.js`, `/manifest.json` at site root.
 
-1. Make sure the repository is **Public** (Settings → General → Danger Zone).
-2. Settings → Pages → Source = **GitHub Actions**.
-3. Push to `master` (or `main`); [`.github/workflows/pages.yml`](.github/workflows/pages.yml)
-   builds `_site/` and deploys automatically.
+### Publish (push → deploy → live)
+
+1. Repository must be **Public**.
+2. Settings → Pages → **Deploy from a branch** → branch `gh-pages` / folder `/`
+   (this is what works today — do not switch to “GitHub Actions” source unless
+   the `github-pages` environment allows deployments from `master`).
+3. Land mobile/layout fixes in `public/` (especially `custom.css`, JS, `sw.js`).
+4. **Bump** `CACHE_NAME` in `public/sw.js` (e.g. `doccards-v34` → `doccards-v35`)
+   whenever you need installed PWAs to drop old caches after a layout ship.
+5. Commit on `master` (or merge a PR into `master`) and push:
+   ```bash
+   git push origin master
+   ```
+6. Watch [Actions → Deploy GitHub Pages](https://github.com/baney75/doccards/actions/workflows/pages.yml)
+   — job `build-and-deploy` must succeed (peaceiris force-pushes `gh-pages`).
+7. Wait ~1–2 minutes for Pages + CDN (`Cache-Control: max-age=600`), then smoke-test
+   the URLs in the checklist below.
 
 Local preview of the deploy artifact:
 
 ```bash
-pnpm pages:build
+npm run pages:build
 npx serve _site -l 3000 -s
 ```
 
@@ -112,13 +128,26 @@ named `doccards`). Cloudflare Workers/Pages config was removed from this
 repository. If an old `doccards` Worker still exists on Cloudflare, delete it
 in the Cloudflare dashboard.
 
-**Required once in GitHub Settings (this agent token cannot flip them):**
-1. Repository must be **Public** (Settings → General → Change visibility).
-2. Settings → Pages → Source = **GitHub Actions**, or Deploy from branch `gh-pages` / root.
+**Required once in GitHub Settings (agent tokens cannot flip these):**
+1. Repository **Public**.
+2. Pages → Deploy from branch → `gh-pages` / `/`.
+3. Do **not** re-enable `actions/deploy-pages` until Settings → Environments →
+   `github-pages` allows branch `master` (past failures:
+   *Branch "master" is not allowed to deploy to github-pages*).
 
 A meta Content-Security-Policy is set in `index.html` (YUI 3 requires
 `'unsafe-eval'`). GitHub Pages cannot set `X-Frame-Options` /
 `frame-ancestors` HTTP headers; those need an edge proxy if you want them.
+
+### Post-deploy smoke checklist
+
+- [ ] `https://baney75.github.io/doccards/` → 200, viewport + app shell
+- [ ] `https://baney75.github.io/doccards/sw.js` → 200, `CACHE_NAME` matches ship
+- [ ] `https://baney75.github.io/doccards/manifest.json` → 200, `id` `/doccards/`
+- [ ] `https://baney75.github.io/doccards/custom.css` → 200 (layout fixes)
+- [ ] Phone: hard-refresh or tap **Update now** on the in-app banner (mid-game
+      installs do not `skipWaiting` until the user accepts)
+- [ ] Optional root check: `https://baney75.github.io/` is still 404 until rename
 
 ## Contributing
 
