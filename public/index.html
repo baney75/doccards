@@ -124,7 +124,10 @@ requirejs.config({
                     if (pendingUpdate && pendingUpdate.postMessage) {
                         pendingUpdate.postMessage({ type: 'SKIP_WAITING' });
                     }
-                    window.location.reload();
+                    // Let controllerchange reload — avoid racing SKIP_WAITING with an immediate reload.
+                    setTimeout(function () {
+                        if (!refreshing) window.location.reload();
+                    }, 600);
                 });
                 document.getElementById('dc-update-later').addEventListener('click', function () {
                     banner.classList.add('hidden');

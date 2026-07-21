@@ -110,7 +110,7 @@ YUI.add(
                             top: function () {
                                 var w = window.innerWidth || 800;
                                 // Pull tableau up on tablets/phones so cascades use felt.
-                                return Solitaire.Card.height * (w < 1024 ? 1.28 : 1.5);
+                                return Solitaire.Card.height * (w < 520 ? 1.12 : w < 1024 ? 1.22 : 1.5);
                             },
                             left: 0,
                         },

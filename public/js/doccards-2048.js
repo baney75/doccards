@@ -142,7 +142,10 @@
     _score: 0,
     _best: 0,
     _won: false,
+    _over: false,
     _touchStart: null,
+    _onKey: null,
+    _shell: null,
 
     mount: function (rootEl) {
       if (!rootEl) return;
@@ -155,18 +158,71 @@
       this._render();
     },
 
-    pause: function () { this._paused = true; },
-    resume: function () { this._paused = false; if (this._mounted) this._render(); },
+    pause: function () {
+      this._paused = true;
+      this._unbindKeys();
+    },
+    resume: function () {
+      this._paused = false;
+      if (this._mounted) this._render();
+      if (!this._over) {
+        this._bindKeys();
+        this._focusBoard();
+      }
+    },
 
     newGame: function (playSound) {
       this._grid = emptyGrid();
       this._score = 0;
       this._won = false;
+      this._over = false;
       spawnTile(this._grid);
       spawnTile(this._grid);
       this._saveState();
+      var over = document.getElementById("dc-2048-over");
+      if (over) over.classList.add("hidden");
       this._render();
+      if (!this._paused) {
+        this._bindKeys();
+        this._focusBoard();
+      }
       if (playSound !== false && typeof DCSound !== "undefined" && DCSound.deal) DCSound.deal();
+    },
+
+    _unbindKeys: function () {
+      if (this._onKey) {
+        document.removeEventListener("keydown", this._onKey);
+        this._onKey = null;
+      }
+    },
+
+    _bindKeys: function () {
+      var self = this;
+      this._unbindKeys();
+      this._onKey = function (e) {
+        if (self._paused || self._over) return;
+        var t = e.target && e.target.tagName;
+        if (t === "INPUT" || t === "TEXTAREA" || t === "SELECT") return;
+        if (e.target && e.target.isContentEditable) return;
+        var map = {
+          ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down",
+          a: "left", A: "left", d: "right", D: "right",
+          w: "up", W: "up", s: "down", S: "down"
+        };
+        var dir = map[e.key];
+        if (!dir) return;
+        e.preventDefault();
+        self._move(dir);
+      };
+      document.addEventListener("keydown", this._onKey, { passive: false });
+    },
+
+    _focusBoard: function () {
+      var board = document.getElementById("dc-2048-board");
+      if (!board) return;
+      try { board.focus({ preventScroll: true }); } catch (e) {
+        try { board.focus(); } catch (e2) {}
+      }
     },
 
     _loadState: function () {
@@ -178,6 +234,8 @@
         this._grid = data.grid;
         this._score = data.score || 0;
         this._won = !!data.won;
+        this._over = !!data.over;
+        if (!this._over && !canMove(this._grid)) this._over = true;
         return true;
       } catch (e) {
         return false;
@@ -189,7 +247,8 @@
         localStorage.setItem(STATE_KEY, JSON.stringify({
           grid: this._grid,
           score: this._score,
-          won: this._won
+          won: this._won,
+          over: this._over
         }));
       } catch (e) {}
       if (this._score > this._best) {
@@ -205,7 +264,7 @@
         this._root.innerHTML =
           '<div class="dc-pz-shell dc-pz-2048">' +
           DCPuzzle.topBarHtml({ score: this._score, best: this._best, scoreId: "dc-2048-score", bestId: "dc-2048-best" }) +
-          '<p class="dc-pz-hint">Swipe or arrow keys · merge matching tiles</p>' +
+          '<p class="dc-pz-hint">Arrows or WASD · swipe · merge matching tiles</p>' +
           '<div class="dc-2048-board" id="dc-2048-board" tabindex="0" role="application" aria-label="2048 board"></div>' +
           '<div class="dc-pz-over hidden" id="dc-2048-over" role="dialog" aria-modal="true" aria-labelledby="dc-2048-over-title">' +
           '<div class="dc-pz-over-card"><p class="dc-pz-over-title" id="dc-2048-over-title">No moves left</p>' +
@@ -219,13 +278,6 @@
           self.newGame();
         });
         var board = document.getElementById("dc-2048-board");
-        board.addEventListener("keydown", function (e) {
-          var map = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down" };
-          if (map[e.key]) {
-            e.preventDefault();
-            self._move(map[e.key]);
-          }
-        });
         board.addEventListener("touchstart", function (e) {
           if (!e.touches || !e.touches[0]) return;
           self._touchStart = { x: e.touches[0].clientX, y: e.touches[0].clientY };
@@ -243,11 +295,21 @@
       }
       this._paint();
       this._updateHud();
+      if (this._over) {
+        var over = document.getElementById("dc-2048-over");
+        var scoreEl = document.getElementById("dc-2048-over-score");
+        if (scoreEl) scoreEl.textContent = String(this._score);
+        if (over) over.classList.remove("hidden");
+      } else if (!this._paused) {
+        this._bindKeys();
+        this._focusBoard();
+      }
     },
 
     _move: function (dir) {
       var result = moveGrid(this._grid, dir);
       if (!result.moved) {
+        if (typeof DCPuzzle !== "undefined" && DCPuzzle.feedbackInvalid) DCPuzzle.feedbackInvalid();
         return;
       }
       this._grid = result.grid;
@@ -306,6 +368,9 @@
     },
 
     _endGame: function () {
+      this._over = true;
+      this._unbindKeys();
+      this._saveState();
       var over = document.getElementById("dc-2048-over");
       var scoreEl = document.getElementById("dc-2048-over-score");
       if (scoreEl) scoreEl.textContent = String(this._score);

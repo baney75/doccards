@@ -41,8 +41,8 @@
       id: "snake",
       label: "Snake",
       short: "Snake",
-      tag: "Swipe to steer · eat gold · grow long",
-      toast: "Snake — swipe or tap arrows to steer!",
+      tag: "Arrows / swipe / D-pad · eat gold",
+      toast: "Snake — arrows/WASD, swipe, or D-pad!",
       api: "DCSnake"
     },
     {
@@ -112,9 +112,20 @@
 
     onChooserOpen: function () {
       this.setChooserTab(this.mode);
+      if (typeof DCPuzzle !== "undefined" && DCPuzzle.pauseAll) DCPuzzle.pauseAll();
+    },
+
+    onChooserHide: function () {
+      // Resume the active puzzle after browsing games (solitaire stays paused-off).
+      if (!isPuzzleMode(this.mode)) return;
+      var p = puzzleById(this.mode);
+      if (!p) return;
+      var api = root[p.api];
+      if (api && typeof api.resume === "function") api.resume();
     },
 
     openChooser: function () {
+      if (typeof DCPuzzle !== "undefined" && DCPuzzle.pauseAll) DCPuzzle.pauseAll();
       if (root.Y && root.Y.one) {
         var node = root.Y.one("#choose_game");
         if (node && typeof node.simulate === "function") {

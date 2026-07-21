@@ -449,7 +449,7 @@ YUI.add(
                             hspacing: 1.25,
                             top: function () {
                                 var w = window.innerWidth || 800;
-                                return Solitaire.Card.height * (w < 1024 ? 1.28 : 1.5);
+                                return Solitaire.Card.height * (w < 520 ? 1.12 : w < 1024 ? 1.22 : 1.5);
                             },
                             left: 0,
                         },
@@ -917,7 +917,8 @@ YUI.add(
                                 hspacing: 1.25,
                                 top: 0,
                                 left: function () {
-                                    return Solitaire.Card.width * 3;
+                                    // Pack after deck+waste (live bundle; keep in sync with fortythieves.js).
+                                    return Solitaire.Card.width * 2.35;
                                 },
                             },
                         },
@@ -2184,7 +2185,7 @@ YUI.add(
                             hspacing: 1.25,
                             top: 0,
                             left: function () {
-                                return Solitaire.Card.width * 2.5;
+                                return Solitaire.Card.width * 1.15;
                             },
                         },
                     },
@@ -2212,7 +2213,8 @@ YUI.add(
                         layout: {
                             hspacing: 1.25,
                             top: function () {
-                                return Solitaire.Card.height * 1.5;
+                                var w = window.innerWidth || 800;
+                                return Solitaire.Card.height * (w < 520 ? 1.12 : w < 1024 ? 1.22 : 1.5);
                             },
                             left: 0,
                         },

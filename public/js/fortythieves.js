@@ -48,7 +48,8 @@ YUI.add(
                                 hspacing: 1.25,
                                 top: 0,
                                 left: function () {
-                                    return Solitaire.Card.width * 3;
+                                    // After deck@0 + waste@1.25
+                                    return Solitaire.Card.width * 2.35;
                                 },
                             },
                         },

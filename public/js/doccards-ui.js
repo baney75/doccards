@@ -351,11 +351,18 @@
         if (window.confirm(message)) onConfirm();
         return;
       }
+      if (typeof DCPuzzle !== "undefined" && DCPuzzle.pauseAll) DCPuzzle.pauseAll();
       document.getElementById("dc-confirm-body").textContent = message;
       overlay.className = "rules-overlay";
       var ok = document.getElementById("dc-confirm-ok");
       var cancel = document.getElementById("dc-confirm-cancel");
       var self = this;
+      var resumePuzzle = function () {
+        if (typeof DCHub !== "undefined" && DCHub.onChooserHide) {
+          // Reuse chooser-hide resume for the active puzzle mode.
+          DCHub.onChooserHide();
+        }
+      };
       var cleanup = function () {
         ok.removeEventListener("click", onOk);
         cancel.removeEventListener("click", onCancel);
@@ -365,10 +372,13 @@
         cleanup();
         self._hideConfirm();
         onConfirm();
+        // onConfirm may start a new game (already running); only resume if still same mode.
+        resumePuzzle();
       };
       var onCancel = function () {
         cleanup();
         self._hideConfirm();
+        resumePuzzle();
       };
       var onBackdrop = function (e) {
         if (e.target === overlay) onCancel();
@@ -773,6 +783,9 @@
       if (!filterBar) {
         filterBar = document.createElement("div");
         filterBar.id = "fav-filter";
+        var scroller = document.createElement("div");
+        scroller.id = "fav-filter-scroller";
+        scroller.className = "fav-filter-scroller";
         var self = this;
         function chip(label, key) {
           var b = document.createElement("button");
@@ -789,11 +802,12 @@
           });
           return b;
         }
-        filterBar.appendChild(chip("All", "all"));
-        filterBar.appendChild(chip("Easy", "easy"));
-        filterBar.appendChild(chip("Classic", "classic"));
-        filterBar.appendChild(chip("Hard", "hard"));
-        filterBar.appendChild(chip("My Games", "mine"));
+        scroller.appendChild(chip("All", "all"));
+        scroller.appendChild(chip("Easy", "easy"));
+        scroller.appendChild(chip("Classic", "classic"));
+        scroller.appendChild(chip("Hard", "hard"));
+        scroller.appendChild(chip("My Games", "mine"));
+        filterBar.appendChild(scroller);
         var title = chooser.querySelector(".chooser-title");
         if (title && title.nextSibling) {
           chooser.insertBefore(filterBar, title.nextSibling);
@@ -801,6 +815,13 @@
           chooser.insertBefore(filterBar, chooser.firstChild);
         }
         this._setActiveFilterKey("all");
+      } else if (!filterBar.querySelector(".fav-filter-scroller")) {
+        // Migrate older flat chip layout into a nested horizontal scroller.
+        var wrap = document.createElement("div");
+        wrap.id = "fav-filter-scroller";
+        wrap.className = "fav-filter-scroller";
+        while (filterBar.firstChild) wrap.appendChild(filterBar.firstChild);
+        filterBar.appendChild(wrap);
       }
     },
 
@@ -849,9 +870,9 @@
         if (params.get("coach") === "0") return;
       } catch (e) { return; }
       var tips = [
-        "Tap a game card once to play. Star your favorites.",
-        "Tap ? for rules. Tap Aa for larger type.",
-        "Games opens solitaire and puzzles — Wood Block, 2048, Mines, Slide 15, Snake, Memory, Simon & Lights Out."
+        "Tap a game once to play. Tap the star to pin favorites.",
+        "Tap i for rules. Tap Aa for bigger cards. Tap ? for a hint.",
+        "Games opens solitaire and puzzles. Swipe the top tabs for more."
       ];
       var step = 0;
       var self = this;

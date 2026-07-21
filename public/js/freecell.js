@@ -52,7 +52,35 @@ define(["./solitaire"], function (solitaire) {
                             hspacing: 1.25,
                             top: 0,
                             left: function () {
-                                return Solitaire.Card.width * 6;
+                                var w = window.innerWidth || 800;
+                                // 4 reserves at left=0; next free slot is 4*hs.
+                                // Read live compacted hspacing so overlap mode stays aligned.
+                                if (w >= 1024) return Solitaire.Card.width * 5.1;
+                                var hs = 1.25;
+                                try {
+                                    var res =
+                                        Y.Solitaire.Freecell &&
+                                        Y.Solitaire.Freecell.reserve;
+                                    var stack =
+                                        res && res.stacks && res.stacks[0];
+                                    if (
+                                        stack &&
+                                        stack.configLayout &&
+                                        typeof stack.configLayout.hspacing ===
+                                            "number"
+                                    ) {
+                                        hs = stack.configLayout.hspacing;
+                                    } else if (w < 390) {
+                                        hs = 0.9;
+                                    } else if (w < 520) {
+                                        hs = 0.92;
+                                    } else {
+                                        hs = 1.12;
+                                    }
+                                } catch (e) {
+                                    hs = w < 520 ? 0.9 : 1.12;
+                                }
+                                return Solitaire.Card.width * (4 * hs + 0.06);
                             },
                         },
                     },
@@ -79,7 +107,10 @@ define(["./solitaire"], function (solitaire) {
                         layout: {
                             hspacing: 1.25,
                             top: function () {
-                                return Solitaire.Card.height * 1.5;
+                                var w = window.innerWidth || 800;
+                                // Tighter under the free-cell row on phones so cascades
+                                // claim more vertical felt once cards grow.
+                                return Solitaire.Card.height * (w < 520 ? 1.12 : w < 1024 ? 1.22 : 1.5);
                             },
                             left: 0,
                         },

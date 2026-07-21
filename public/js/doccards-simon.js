@@ -20,6 +20,7 @@
     _best: 0,
     _playing: false,
     _inputLock: false,
+    _over: false,
 
     mount: function (rootEl) {
       if (!rootEl) return;
@@ -41,16 +42,21 @@
       this._paused = false;
       if (!this._mounted) return;
       this._render();
-      var overEl = document.getElementById("dc-simon-over");
-      var gameOverVisible = overEl && !overEl.classList.contains("hidden");
-      // After leaving mid-sequence, lock input and replay so Grandpa isn't guessing.
-      if (this._sequence && this._sequence.length && !gameOverVisible) {
+      if (this._over) {
+        var over = document.getElementById("dc-simon-over");
+        var el = document.getElementById("dc-simon-over-level");
+        if (el) el.textContent = String(this._level);
+        if (over) over.classList.remove("hidden");
+        this._inputLock = true;
+        return;
+      }
+      if (this._sequence && this._sequence.length) {
         var self = this;
         this._inputLock = true;
         this._step = 0;
         this._playing = true;
         setTimeout(function () { self._playback(0); }, 400);
-      } else if (!gameOverVisible) {
+      } else {
         this._inputLock = false;
       }
     },
@@ -61,6 +67,9 @@
       this._level = 0;
       this._playing = false;
       this._inputLock = false;
+      this._over = false;
+      var over = document.getElementById("dc-simon-over");
+      if (over) over.classList.add("hidden");
       this._updateHud();
       this._nextRound();
       if (playSound !== false && typeof DCSound !== "undefined" && DCSound.deal) DCSound.deal();
@@ -173,6 +182,7 @@
     },
 
     _gameOver: function () {
+      this._over = true;
       this._inputLock = true;
       var over = document.getElementById("dc-simon-over");
       var el = document.getElementById("dc-simon-over-level");

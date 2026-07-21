@@ -55,6 +55,9 @@
     _tiles: null,
     _moves: 0,
     _best: 0,
+    _won: false,
+    _onKey: null,
+    _shell: null,
 
     mount: function (rootEl) {
       if (!rootEl) return;
@@ -68,14 +71,62 @@
       this._render();
     },
 
-    pause: function () { this._paused = true; },
-    resume: function () { this._paused = false; if (this._mounted) this._render(); },
+    pause: function () {
+      this._paused = true;
+      this._unbindKeys();
+    },
+    resume: function () {
+      this._paused = false;
+      if (this._mounted) this._render();
+      if (!this._won) this._bindKeys();
+    },
 
     newGame: function (playSound) {
       this._tiles = shuffle();
       this._moves = 0;
+      this._won = false;
+      var over = document.getElementById("dc-slide-over");
+      if (over) over.classList.add("hidden");
       this._render();
+      if (!this._paused) this._bindKeys();
       if (playSound !== false && typeof DCSound !== "undefined" && DCSound.deal) DCSound.deal();
+    },
+
+    _unbindKeys: function () {
+      if (this._onKey) {
+        document.removeEventListener("keydown", this._onKey);
+        this._onKey = null;
+      }
+    },
+
+    _bindKeys: function () {
+      var self = this;
+      this._unbindKeys();
+      this._onKey = function (e) {
+        if (self._paused || self._won) return;
+        var t = e.target && e.target.tagName;
+        if (t === "INPUT" || t === "TEXTAREA" || t === "SELECT") return;
+        var blank = self._blankIndex();
+        // Arrow/WASD move the tile into the blank (opposite of snake).
+        var map = {
+          ArrowUp: blank + SIZE, ArrowDown: blank - SIZE,
+          ArrowLeft: blank + 1, ArrowRight: blank - 1,
+          w: blank + SIZE, W: blank + SIZE, s: blank - SIZE, S: blank - SIZE,
+          a: blank + 1, A: blank + 1, d: blank - 1, D: blank - 1
+        };
+        var idx = map[e.key];
+        if (idx == null) return;
+        // Always consume Arrow/WASD so the page does not scroll, even on illegal moves.
+        e.preventDefault();
+        if (idx < 0 || idx >= SIZE * SIZE) return;
+        if ((e.key === "ArrowLeft" || e.key === "a" || e.key === "A" ||
+             e.key === "ArrowRight" || e.key === "d" || e.key === "D") &&
+            Math.floor(blank / SIZE) !== Math.floor(idx / SIZE)) {
+          return;
+        }
+        self._move(idx);
+      };
+      document.addEventListener("keydown", this._onKey, { passive: false });
     },
 
     _render: function () {
@@ -90,7 +141,7 @@
             scoreId: "dc-slide-moves",
             bestId: "dc-slide-best"
           }) +
-          '<p class="dc-pz-hint">Tap a tile beside the empty space · order 1–15</p>' +
+          '<p class="dc-pz-hint">Tap a tile beside the empty space · arrows / WASD</p>' +
           '<div class="dc-slide-board" id="dc-slide-board" role="grid"></div>' +
           '<div class="dc-pz-over hidden" id="dc-slide-over" role="dialog" aria-modal="true">' +
           '<div class="dc-pz-over-card"><p class="dc-pz-over-title">Solved!</p>' +
@@ -113,6 +164,14 @@
         }
       }
       this._paint();
+      if (this._won) {
+        var over = document.getElementById("dc-slide-over");
+        var mEl = document.getElementById("dc-slide-over-moves");
+        if (mEl) mEl.textContent = String(this._moves);
+        if (over) over.classList.remove("hidden");
+      } else if (!this._paused) {
+        this._bindKeys();
+      }
     },
 
     _blankIndex: function () {
@@ -179,6 +238,8 @@
     },
 
     _win: function () {
+      this._won = true;
+      this._unbindKeys();
       if (this._best === 0 || this._moves < this._best) {
         this._best = this._moves;
         DCPuzzle.saveInt(BEST_KEY, this._best);

@@ -247,6 +247,12 @@
 
     pause: function () {
       this._paused = true;
+      if (this._ghost && this._ghost.parentNode) {
+        this._ghost.parentNode.removeChild(this._ghost);
+      }
+      this._ghost = null;
+      this._drag = null;
+      if (typeof this._clearHighlight === "function") this._clearHighlight();
     },
 
     resume: function () {

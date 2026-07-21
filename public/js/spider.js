@@ -66,7 +66,8 @@ YUI.add(
                             hspacing: 1.25,
                             top: 0,
                             left: function () {
-                                return Solitaire.Card.width * 2.5;
+                                // Park after the single deck column.
+                                return Solitaire.Card.width * 1.15;
                             },
                         },
                     },
@@ -94,7 +95,8 @@ YUI.add(
                         layout: {
                             hspacing: 1.25,
                             top: function () {
-                                return Solitaire.Card.height * 1.5;
+                                var w = window.innerWidth || 800;
+                                return Solitaire.Card.height * (w < 520 ? 1.12 : w < 1024 ? 1.22 : 1.5);
                             },
                             left: 0,
                         },

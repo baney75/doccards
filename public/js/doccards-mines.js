@@ -228,6 +228,7 @@
 
       btn.addEventListener("contextmenu", function (e) {
         e.preventDefault();
+        if (!self._over) self._toggleFlag(r, c);
       });
 
       btn.addEventListener("touchstart", function () {
