@@ -1,0 +1,94 @@
+{
+  "id": "/doccards/",
+  "name": "Doc's Cards",
+  "short_name": "Doc's Cards",
+  "description": "Solitaire, Wood Block, 2048, Mines, Slide 15, Snake, Memory, Simon & Lights Out — offline, ad-free, installable.",
+  "start_url": "./?source=pwa",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0D2240",
+  "theme_color": "#0D2240",
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  },
+  "display_override": ["standalone", "minimal-ui"],
+  "icons": [
+    {
+      "src": "pwa-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "pwa-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "pwa-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Klondike",
+      "short_name": "Klondike",
+      "url": "./?game=klondike",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Freecell",
+      "short_name": "Freecell",
+      "url": "./?game=freecell",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Wood Block",
+      "short_name": "Wood Block",
+      "url": "./?mode=woodblock",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "2048",
+      "short_name": "2048",
+      "url": "./?mode=game2048",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Mines",
+      "short_name": "Mines",
+      "url": "./?mode=mines",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Snake",
+      "short_name": "Snake",
+      "url": "./?mode=snake",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Memory",
+      "short_name": "Memory",
+      "url": "./?mode=memory",
+      "icons": [{ "src": "pwa-maskable-192.png", "sizes": "192x192" }]
+    }
+  ],
+  "categories": ["games", "entertainment"],
+  "prefer_related_applications": false
+}
